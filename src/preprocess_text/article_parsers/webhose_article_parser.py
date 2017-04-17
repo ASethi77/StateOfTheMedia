@@ -2,7 +2,7 @@ import os
 import glob
 import json
 import textacy
-from article_parser import ArticleParser
+from .article_parser import ArticleParser
 
 class WebhoseArticleParser(ArticleParser):
 	def __init__(self, articles_directory):
