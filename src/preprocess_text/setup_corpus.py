@@ -1,5 +1,5 @@
 # coding: utf-8
-from article_parsers.webhose_article_parser import WebhoseArticleParser
+from .article_parsers.webhose_article_parser import WebhoseArticleParser
 import textacy
 
 def setup_dev_corpus(max_articles=100, use_big_data=False):
@@ -12,5 +12,5 @@ def setup_dev_corpus(max_articles=100, use_big_data=False):
 		if i >= max_articles:
 			break
 
-	corpus = textacy.Corpus("en", docs=doc_list, big_ass_data=use_big_data)
+	corpus = textacy.Corpus("en", docs=doc_list) #, big_ass_data=use_big_data)
 	return corpus

@@ -1,6 +1,5 @@
 import os
 import glob
-import json
 import textacy
 from .article_parser import ArticleParser
 
