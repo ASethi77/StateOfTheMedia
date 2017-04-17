@@ -1,9 +1,9 @@
 # coding: utf-8
-from article_parsers.webhose_article_parser import WebhoseArticleParser
+from .article_parsers.webhose_article_parser import WebhoseArticleParser
 import textacy
 
 def setup_dev_corpus(max_articles=100, use_big_data=False):
-	myparser = WebhoseArticleParser("../../data/Articles/WebHoseDevCorpus/")
+	myparser = WebhoseArticleParser("../data/Articles/WebHoseDevCorpus/")
 	i = 0
 	doc_list = []
 	for doc in myparser.yield_articles():
