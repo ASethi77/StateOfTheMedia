@@ -4,8 +4,6 @@ import textacy
 from collections import defaultdict
 from dateutil.parser import parse
 
-
-
 def setup_dev_corpus(max_articles=100, per_date=True, use_big_data=False):
     myparser = WebhoseArticleParser("../data/Articles/WebHoseDevCorpus/")
     i = 0
@@ -27,11 +25,9 @@ def setup_dev_corpus(max_articles=100, per_date=True, use_big_data=False):
     if per_date:
         corpra = []
         for date, docs in date_to_docs.items():
-            # print(docs)
             corpus_for_today = textacy.Corpus('en', docs=docs)
-            # print (corpus_for_today)
-            corpra.append(corpus_for_today)
-            corpus_for_today.save("../../data/TextacyCorpra", str(date))
+            corpra.append((date, corpus_for_today))
+            corpus_for_today.save("../data/TextacyCorpra", str(date))
         return corpra
     else:
-        return textacy.Corpus("en", docs=doc_list)  # , big_ass_data=use_big_data)
+        return textacy.Corpus("en", docs=doc_list)
