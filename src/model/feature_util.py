@@ -26,7 +26,7 @@ def daily_bag_of_words_to_regression_data(daily_bag_of_words):
 	from evaluation.load_labels import LabelLoader
 
 	label_loader = LabelLoader()
-	label_loader.load_json()
+	label_loader.load_json(president_surname="Obama")
 	labels = label_loader.get_labels()
 
 	training_input_output_pairs = []
