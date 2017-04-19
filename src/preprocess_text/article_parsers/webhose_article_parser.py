@@ -14,7 +14,7 @@ class WebhoseArticleParser(ArticleParser):
 			content, metadata = textacy.fileio.utils.split_record_fields(article_json, "text")
 			content_full = ""
 			for line in content:
-				content_full += line
+				content_full += line.encode('ascii', errors='replace').decode('ascii')
 			metadata_full = {}
 			for data in metadata:
 				metadata_full = {**metadata_full, **data}

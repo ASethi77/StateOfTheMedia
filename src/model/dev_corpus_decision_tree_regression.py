@@ -1,6 +1,5 @@
 import model.feature_util
-from preprocess_text.setup_corpus import setup_dev_corpus
-from model.decision_tree_model import DecisionTreeRegressionModel
+from preprocess_text.load_corpora import load_corpora
 from model.decision_tree_model import DecisionTreeRegressionModel
 
 import numpy
@@ -8,7 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import cross_val_score
 
 if __name__ == '__main__':
-	dev_corpus_100_articles = setup_dev_corpus()
+	dev_corpus_100_articles = load_corpora("WebHoseDevCorpus")
 
 	daily_bag_of_words = model.feature_util.webhose_corpus_to_daily_bag_of_words(dev_corpus_100_articles)
 	bag_of_words_per_day, presidential_approval_ratings = model.feature_util.daily_bag_of_words_to_regression_data(daily_bag_of_words)
