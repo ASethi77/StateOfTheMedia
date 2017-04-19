@@ -7,7 +7,7 @@ class LabelLoader(object):
     def __init__(self):
          # default target based on our server and data configuration
          # self.target_path = "/opt/nlp_shared/data/presidential_approval_ratings"
-         self.target_path = "../../data/RoperCenterPolls"
+         self.target_path = "../data/RoperCenterPolls"
          self.target_file = "president_approval_ratings.json"
          self.labels = {}
 

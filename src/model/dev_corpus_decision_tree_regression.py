@@ -39,4 +39,4 @@ if __name__ == '__main__':
 		dev_corpus_regression_model = DecisionTreeRegressionModel([bag_of_words_train, approval_ratings_train], max_depth=i)
 		k_fold_scores = cross_val_score(dev_corpus_regression_model.model, bag_of_words_per_day, presidential_approval_ratings, n_jobs=-1, cv=4)
 		score_per_depth[i] = numpy.mean(k_fold_scores)
-		print("mean score is {0}".format(k_fold_scores))
+		print("mean score is {0}".format(score_per_depth[i]))
