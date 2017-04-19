@@ -3,6 +3,8 @@ from preprocess_text.setup_corpus import setup_dev_corpus
 from model.decision_tree_model import DecisionTreeRegressionModel
 from model.decision_tree_model import DecisionTreeRegressionModel
 
+import numpy
+import matplotlib.pyplot as plt
 from sklearn.model_selection import cross_val_score
 
 if __name__ == '__main__':
@@ -31,7 +33,10 @@ if __name__ == '__main__':
 	print("Computing k-fold loss with different max decision tree depths:")
 	depth_min = 1
 	depth_max = 25
+	score_per_depth = {}
 	for i in range(depth_min, depth_max + 1, 1):
 		print(i)
 		dev_corpus_regression_model = DecisionTreeRegressionModel([bag_of_words_train, approval_ratings_train], max_depth=i)
-		print(cross_val_score(dev_corpus_regression_model.model, bag_of_words_per_day, presidential_approval_ratings, n_jobs=-1, cv=4))
+		k_fold_scores = cross_val_score(dev_corpus_regression_model.model, bag_of_words_per_day, presidential_approval_ratings, n_jobs=-1, cv=4)
+		score_per_depth[i] = numpy.mean(k_fold_scores)
+		print("mean score is {0}".format(k_fold_scores))
