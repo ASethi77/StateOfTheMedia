@@ -4,8 +4,8 @@ import textacy
 from collections import defaultdict
 from dateutil.parser import parse
 
-def setup_dev_corpus(max_articles=100, per_date=True, use_big_data=False):
-    myparser = WebhoseArticleParser("../../data/Articles/WebHoseDevCorpus/")
+def setup_corpus(article_parser_type, article_dir, max_articles, per_date, use_big_data):
+    myparser = article_parser_type(article_dir)
     i = 0
     doc_list = []
     date_to_docs = defaultdict(list)
@@ -27,7 +27,16 @@ def setup_dev_corpus(max_articles=100, per_date=True, use_big_data=False):
         for date, docs in date_to_docs.items():
             corpus_for_today = textacy.Corpus('en', docs=docs)
             corpra.append((date, corpus_for_today))
-            corpus_for_today.save("../../data/TextacyCorpra", str(date))
+            corpus_for_today.save("../data/TextacyCorpra", str(date))
         return corpra
     else:
         return textacy.Corpus("en", docs=doc_list)
+
+def setup_dev_corpus(max_articles=100, per_date=True, use_big_data=False):
+    return setup_corpus(WebhoseArticleParser, "../data/Articles/WebHoseDevCorpus", max_articles, per_date, use_big_data)
+
+def setup_100M_corpus(per_date=True, use_big_data=True):
+    return setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_english_dataset/WebHoseDataset-16275-Articles", 17000, per_date, use_big_data) 
+
+if __name__ == '__main__':
+    setup_100M_corpus()
