@@ -57,3 +57,4 @@ def __normalize(vector, total):
 if __name__ == "__main__": # used for basic testing
     test_phrase = "Barack Obama has pursued the most aggressive 'war on leaks' since the Nixon administration, according to a report published on Thursday that says the administration's attempts to control the flow of information is hampering the ability of journalists to do their jobs. The author of the study, the former Washington Post executive editor Leonard Downie, says the administration's actions have severely hindered the release of information that could be used to hold it to account."
     print(topic_vectorize(test_phrase))
+    print(one_hot_topic_vectorize(test_phrase))
