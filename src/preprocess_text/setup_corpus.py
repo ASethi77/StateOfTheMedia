@@ -35,7 +35,7 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
 
         for date, docs in date_to_docs.items():
             dates.add(date)
-            corpus_for_today = textacy.Corpus('en', docs=docs)
+            corpus_for_today = textacy.Corpus('en', docs=docs, big_ass_data=use_big_data)
             corpra.append((date, corpus_for_today))
             corpus_for_today.save(corpus_dir, str(date))
 
