@@ -3,7 +3,7 @@ from preprocess_text.load_corpora import load_corpora
 from model.decision_tree_model import DecisionTreeRegressionModel
 
 import numpy
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from sklearn.model_selection import cross_val_score
 
 if __name__ == '__main__':
