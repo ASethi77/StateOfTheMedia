@@ -27,7 +27,7 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
     if per_date:
         corpra = []
         dates = set()
-        corpus_dir = "../data/" + corpus_name
+        corpus_dir = os.path.join("../data/", corpus_name)
 
         if not os.path.exists(corpus_dir):
             os.makedirs(corpus_dir)
@@ -38,7 +38,7 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
             corpra.append((date, corpus_for_today))
             corpus_for_today.save(corpus_dir, str(date))
 
-        with open(corpus_dir + "/dates.json", "wb") as dates_file:
+        with open(os.path.join(corpus_dir, "dates.json"), "wb") as dates_file:
             pickle.dump(dates, dates_file)
 
         return corpra
