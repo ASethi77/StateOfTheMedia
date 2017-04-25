@@ -3,6 +3,7 @@ from .article_parsers.webhose_article_parser import WebhoseArticleParser
 import textacy
 from collections import defaultdict
 from dateutil.parser import parse
+from optparse import OptionParser
 import pickle
 import os
 
@@ -52,4 +53,29 @@ def setup_100M_corpus(corpus_name="HundredMegsCorpus", per_date=True, use_big_da
     return setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_english_dataset/WebHoseDataset-16275-Articles", corpus_name, 17000, per_date, use_big_data)
 
 if __name__ == '__main__':
-    setup_dev_corpus()
+    # add command-line flags
+    parser = OptionParser()
+    parser.add_option("-d", "--dir", dest="dir", help="directory containing corpus data", metavar="DIRECTORY") # by default if not specified
+    parser.add_option("-n", "--name", dest="name", help="name of corpus", metavar="NAME")
+    parser.add_option("-m", "--max", dest="max_articles", help="max # of articles to pull", metavar="MAX_NUM")
+    parser.add_option("-t", "--date", dest="per_date", action="store_true", help="partition data by date (true or false)")
+    parser.add_option("-b", "--big", dest="big_data", action="store_true", help="big data, use disk (true or false)")
+    (options, args) = parser.parse_args()
+
+    # default values    
+    if options.corpus != None:
+        name = "TEMP_CORPUS"
+        data_dir = options.dir
+        max_articles = 1000
+        per_date = options.per_date
+        big_data = options.big_data
+        if options.dir != None:
+            data_dir = options.dir
+        if options.max_articles != None:
+            max_articles = int(options.max_articles)
+        if options.name != None:
+            name = options.name
+
+        setup_corpus(WebhoseArticleParser, data_dir, corpus, max_articles, per_date, big_data)
+    else:
+        setup_dev_corpus()
