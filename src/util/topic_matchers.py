@@ -11,6 +11,12 @@ topic_labels = {
 	'trudeau': 'world_leaders',
 	'xi': 'world_leaders', # also jank
 	'nieto': 'world_leaders',
+	'assad': 'world_leaders', # I guess leading half a country is still leading a country
+	'theresa': 'world_leaders', # implying Theresa May of the UK
+	'hollande': 'world_leaders',
+	'duterte': 'world_leaders',
+	'trump': 'world_leaders',
+	'erdogan': 'world_leaders', # no idea if this will match with the weird g character
 	# countries
 	'america': 'countries',
 	'uk': 'countries',
@@ -30,6 +36,10 @@ topic_labels = {
 	'iraq': 'countries',
 	'isis': 'countries', # they worked hard. They deserve this
 	# politics
+        'president': 'politics',
+	'government': 'politics',
+	'administration': 'politics',
+	'washington': 'politics',
 	'republican': 'politics',
 	'democrat': 'politics',
 	'senate': 'politics',
@@ -87,10 +97,10 @@ topic_labels = {
 	'invade': 'foreign',
 	'attack': 'foreign',
 	'un': 'foreign',
-	'nato', 'foreign',
-	'aid', 'foreign',
-	'unicef', 'foreign',
-	'cia', 'foreign',
+	'nato': 'foreign',
+	'aid': 'foreign',
+	'unicef': 'foreign',
+	'cia': 'foreign',
 	'army': 'foreign',
 	'massacre': 'foreign',
 	'genocide': 'foreign',
@@ -118,15 +128,15 @@ topic_labels = {
 	'summit': 'foreign',
 	'conference': 'foreign',
 	'regime': 'foreign',
-	'terrorism', 'foreign',
-	'terrorist', 'foreign',
-	'terror', 'foreign',
-	'nuclear', 'foreign',
-	'unilateral', 'foreign'
-	'bilateral', 'foreign',
-	'trilatal', 'foreign',
-	'quadrilateral', 'foreign',
-	'rectangle', 'foreign', # it's gonna shape the future
+	'terrorism': 'foreign',
+	'terrorist': 'foreign',
+	'terror': 'foreign',
+	'nuclear': 'foreign',
+	'unilateral': 'foreign',
+	'bilateral': 'foreign',
+	'trilatal': 'foreign',
+	'quadrilateral': 'foreign',
+	'rectangle': 'foreign', # it's gonna shape the future
 	# social
 	'race': 'social',
 	'racial': 'social',
@@ -141,7 +151,7 @@ topic_labels = {
 	'sex': 'social',
 	'marriage': 'social',
 	'husband': 'social',
-	'wife': 'social'
+	'wife': 'social',
 	'gender': 'social',
 	'abortion': 'social',
 	'parenthood': 'social', # implying planned parenthood
@@ -216,7 +226,7 @@ label_index = {
 	'countries': 1,
 	'politics': 2,
 	'economics': 3,
-	'foreign_relations': 4,
-	'social': 5
+	'foreign': 4,
+	'social': 5,
 	'environment': 6
 }
