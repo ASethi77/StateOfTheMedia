@@ -10,7 +10,6 @@ def topic_vectorize(text):
     __normalize(output_vector, num_signals)
     return output_vector
 
-
 def one_hot_topic_vectorize(text):
     count_result = __count_signal_words(__pre_process_text(text))
     output_vector = count_result[0]
@@ -51,6 +50,8 @@ def __max_indx(vector):
 
 # returns the normalized vector based on the given total # of values
 def __normalize(vector, total):
+    if total < 1.0:
+        return [0.0] * len(vector)
     for indx in range(len(vector)):
         vector[indx] = vector[indx] / total
 

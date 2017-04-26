@@ -22,13 +22,17 @@ def webhose_corpus_to_daily_bag_of_words(webhose_corpus):
 
     return freqs_per_day
 
+def get_approval_poll_data(president="Obama"):
+    from evaluation.load_labels import LabelLoader
+    label_loader = LabelLoader()
+    label_loader.load_json(president_surname=president)
+    labels = label_loader.get_labels()
+
+    return labels
+    
 
 def daily_bag_of_words_to_regression_data(daily_bag_of_words):
-    from evaluation.load_labels import LabelLoader
-
-    label_loader = LabelLoader()
-    label_loader.load_json(president_surname="Obama")
-    labels = label_loader.get_labels()
+    labels = get_approval_poll_data()
 
     training_input_output_pairs = []
     for day in daily_bag_of_words:

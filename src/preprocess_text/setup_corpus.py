@@ -26,7 +26,7 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
             break
 
     if per_date:
-        corpra = []
+        corpora = []
         dates = set()
         corpus_dir = os.path.join("../data/", corpus_name)
 
@@ -36,13 +36,13 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
         for date, docs in date_to_docs.items():
             dates.add(date)
             corpus_for_today = textacy.Corpus('en', docs=docs, big_ass_data=use_big_data)
-            corpra.append((date, corpus_for_today))
+            corpora.append((date, corpus_for_today))
             corpus_for_today.save(corpus_dir, str(date))
 
         with open(os.path.join(corpus_dir, "dates.json"), "wb") as dates_file:
             pickle.dump(dates, dates_file)
 
-        return corpra
+        return corpora
     else:
         return textacy.Corpus("en", docs=doc_list)
 
