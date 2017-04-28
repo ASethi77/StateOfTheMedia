@@ -112,3 +112,32 @@ if __name__ == '__main__':
 
     k_fold_scores = cross_val_score(dev_corpus_regression_model.model, X, Y, n_jobs=-1, cv=4)
     print(k_fold_scores)
+
+    # ------------------------ Plotting Results ----------------------------------------
+    actual_approval = []
+    actual_disapproval = []
+    predict_approval = []
+    predict_disapproval = []
+    axis_vals = []
+    
+    for label in Y_test:
+        actual_approval.append(label[0])
+        actual_disapproval.append(label[1])
+
+    for i in range(len(X_test)):
+        prediction = dev_corpus_regression_model.predict(X_test[i])
+        predict_approval.append(prediction[0])
+        predict_disapproval.append(prediction[1])
+        axis_vals.append(i)
+        
+
+    plt.figure(1)
+    plt.subplot(211)
+    # red is actual, blue is predicted
+    plt.plot(axis_vals, actual_approval, 'ro', axis_vals, predict_approval, 'bo')
+    plt.ylabel('Approval percentage')
+
+    plt.subplot(212)
+    plt.plot(axis_vals, actual_disapproval, 'ro', axis_vals, predict_disapproval, 'bo')
+    plt.ylabel('Disapproval percentage')
+    plt.show()
