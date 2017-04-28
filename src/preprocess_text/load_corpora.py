@@ -6,12 +6,12 @@ def load_corpora(corpus_name, use_big_data=False):
     with open(corpus_dir + "/dates.json", "rb") as dates_file:
         dates = pickle.load(dates_file)
 
-        corpora = []
+        corpora = {}
         for date in sorted(dates):
-            # print(date)
+            #print(date)
             corpus = textacy.Corpus.load(corpus_dir, str(date), big_ass_data=use_big_data)
-            # print(corpus)
-            corpora.append(corpus)
+            #print(corpus)
+            corpora[date] = corpus
 
         return corpora
 

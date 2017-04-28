@@ -4,7 +4,7 @@ def webhose_corpus_to_daily_bag_of_words(webhose_corpus):
 
     set_of_all_words = set()
 
-    for day, corpus_for_day in webhose_corpus:
+    for day, corpus_for_day in webhose_corpus.items():
         word_freqs_for_day = corpus_for_day.word_freqs(normalize='lower', as_strings=True)
         set_of_all_words = set_of_all_words.union(set(word_freqs_for_day.keys()))
 
@@ -15,7 +15,7 @@ def webhose_corpus_to_daily_bag_of_words(webhose_corpus):
 
     freqs_per_day = defaultdict(lambda: copy.deepcopy(count_of_all_words))
 
-    for day, corpus_for_day in webhose_corpus:
+    for day, corpus_for_day in webhose_corpus.items():
         word_freqs_for_day = corpus_for_day.word_freqs(normalize='lower', as_strings=True)
         day_freq_counter = Counter(word_freqs_for_day)
         freqs_per_day[day].update(day_freq_counter)

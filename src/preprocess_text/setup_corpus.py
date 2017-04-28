@@ -63,7 +63,7 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
 
     # default values    
-    if options.corpus != None:
+    if options.dir != None:
         name = "TEMP_CORPUS"
         data_dir = options.dir
         max_articles = 1000
