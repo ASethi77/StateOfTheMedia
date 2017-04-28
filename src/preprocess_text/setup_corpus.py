@@ -76,6 +76,6 @@ if __name__ == '__main__':
         if options.name != None:
             name = options.name
 
-        setup_corpus(WebhoseArticleParser, data_dir, corpus, max_articles, per_date, big_data)
+        setup_corpus(WebhoseArticleParser, data_dir, name, max_articles, per_date, big_data)
     else:
         setup_dev_corpus()
