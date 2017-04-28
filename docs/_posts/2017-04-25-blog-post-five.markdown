@@ -25,7 +25,22 @@ The second model is actually based on prior research, and we believed that this 
 
 ## First model: Decision Tree Regression
 
-For our first strawman, we chose to use an aggregated bag of words for each day of articles as features to a decision tree regressor to predict presidential approval ratings. Each input vector was the count of each word that occurred during that day. Not surprisingly, this approach didn’t work very well.
+For our first strawman, we chose to use an aggregated bag of words for each day of articles as features to a decision tree regressor to predict presidential approval ratings. Each input vector was the count of each word that occurred during that day. Not surprisingly, this approach didn’t work very well. Based on the results of our DevWebHoseCorpus (10000 WebHose news articles) we got the following k-fold results for the corresponding depths (where each value is a mean of the R^2 value over each fold):
+
+1: -0.590107
+2: -0.714651
+3: -0.805139
+4: -1.093312
+5: -1.206481
+6: -1.354230
+7: -1.500033
+8: -1.575303
+9: -1.549526
+10 ...
+11 ...
+12 ...
+
+(values held constant at -1.549526 for increasing depth beyond 9)
 
 ## Second model: Linear Regression
 
@@ -80,8 +95,14 @@ This was initially surprising, since the original paper upon which we based our 
 ## Error Analysis
 
 The main limitation of our model is a significant lack of hits for sentiment signal words. When viewing a random sample of feature vectors that were being fed to our model as training data, a large majority of the sentiment values were heavily leaning towards the extremes. Even when we expanded the text being inputted to the full length of the articles, we saw no significant changes in R^2 values. One possible explanation is that news articles are inherently more neutral in their tone than tweets, so positive and negative lean is much more subtle. 
+
 Another limitation is the sophistication to which we can accurately discern topics from signal words. At the moment we currently look for exact case insensitive matches of approximately 200 manually curated signal words for the topics. Some topics have disproportionately more signal words than others. There are also words that may have overlap between topics (such as “negotiation” between Foreign Relations and Economics). Open questions exist for where we should categorize utility words like “regulations”. And lastly, the signal words for topics themselves inherently have positive or negative sentiment skew that is unaccounted for in our model (for example both “peace accord” and “genocide” would contribute to the Foreign Relations label equally). Lastly, for topic extraction there is a question of what level of granularity should we branch our topics into (for example should “Race Relations” be a separate label or should its signal words be left under Social Issues).
+
 Because of the variety of articles we have in our dataset, and to some extent variety of quality sourcing as well, there is quite a lot of noise that does not contribute to our model. Although we remove entries that have zero contribution to any of the topic labels, we theorize there are still plenty of articles in the corpora that are minimally related to politics or presidential actions. This is completely different from say a twitter dataset where filtering for something like the name of the president can remove most junk. In addition each twitter user has equal credibility and impact as any other twitter user. We currently do not consider reputability of the journalistic source or the disproportionate impact of large scale real life events (say for example a stock market crash or declaring war). Eventually we need to find some way of weighting articles as well as identifying key events being talked about through the context of the articles. 
+
+### Plan Going Forward
+
+We will continue to try and improve this linear regression model for a short while longer before considering other potential models. There are small iterative improvements we would like to apply to see if they make any improvements, such as applying lemmatization to better match topic signal words, trying a moving range of features over multiple days rather than a single feature vector per day (as we hypothesize there is perhaps too much variation or volatility to individual day fluctations). Other algorithms that we may want to try include LDA (Linear Discriminant Analysis) which would allow us to source topic labels based on the article content rather than our own assumptions and NER (Named Entity Recognition) combined with sequence labelling to try and better understand the context and interactions of people/groups within the article. We definitely want to start plotting our data, labels, and predictions to see if there is any correlation being drawn from our model whatsoever. If we are getting no signal from our current topic/sentiment features then we may need to do a more fundamental rethink of our strategy.
 
 # References
 
