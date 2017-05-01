@@ -59,10 +59,8 @@ if __name__ == '__main__':
     political_article_corpora = setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_political_news_dataset", "WebhosePoliticalNewsArticles", 10000, per_date=True, use_big_data=True)
     print("done.")
 
-    # TODO: Get inputs, which should look like:
     X = []
     Y = []
-<<<<<<< HEAD
     for date, corpus_for_day in political_article_corpora: 
         if date not in obama_approval_ratings :
             print("Unable to find approval rating data for {}, skipping".format(date))
