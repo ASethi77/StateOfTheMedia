@@ -6,6 +6,7 @@ import model.feature_util
 import model.sentiment_analysis
 import model.topic_extractor
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from datetime import timedelta
 from model.linear_regression_model import LinearRegressionModel
 from preprocess_text.load_corpora import load_corpora
@@ -26,12 +27,12 @@ def doc_to_text(doc):
 def corpora_to_day_features(corpora, sentiment_corpus):
     output = {}
     for date, corpus_for_day in corpora.items():
-	day_feature_vector = [0.0] * (len(label_index.keys()) + 1) # features are topic labels plus sentiment value
+        day_feature_vector = [0.0] * (len(label_index.keys()) + 1) # features are topic labels plus sentiment value
         for doc in corpus_for_day:
             doc_topic = model.topic_extractor.topic_vectorize(doc_to_text(doc))
             doc_sentiment = model.sentiment_analysis.get_doc_sentiment_by_words(doc, sentiment_corpus)
-            for i in range(len(doc_topic):
-                day_feature_vector[i] += doc_topic[i]
+            for indx in range(len(doc_topic)):
+                day_feature_vector[indx] += doc_topic[indx]
             day_feature_vector[-1] += doc_sentiment
         for i in range(len(day_feature_vector)):
             day_feature_vector[i] = day_feature_vector[i] / len(corpus_for_day) # normalize our features
@@ -48,8 +49,9 @@ if __name__ == '__main__':
     print("done.")
 
     print("Loading corpus of political articles...")
-    #political_article_corpora = setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_political_news_dataset", "WebhosePoliticalNewsArticles", 100000, per_date=True, use_big_data=True)
-    political_article_corpora = load_corpora("WebhosePoliticalNewsArticles", True)
+    political_article_corpora = setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_political_news_dataset", "WebhosePoliticalNewsArticles", 10000, per_date=True, use_big_data=True)
+    #political_article_corpora = load_corpora("WebhosePoliticalNewsArticles", False)
+    #political_article_corpora = load_corpora("WebHoseDevCorpus", True)
     print("done.")
 
     # TODO: Get inputs, which should look like:
@@ -60,6 +62,7 @@ if __name__ == '__main__':
 
     features_by_day = corpora_to_day_features(political_article_corpora, sentiment_corpus)
     # combine individual days' features into one feature vector a range of days
+    print("Number of days of data: " + str(len(features_by_day.items())))
     for date, features in features_by_day.items():
         range_features = [0.0] * (len(label_index.keys()) + 1)
         days_with_data = 0 # count how many days in this range actually provided us data
@@ -72,7 +75,7 @@ if __name__ == '__main__':
                 days_with_data += 1
                 for i in range(len(curr_day_features)):
                     range_features[i] += curr_day_features[i]
-        for i in range(len(curr_day_features)):
+        for i in range(len(range_features)):
             range_features[i] = range_features[i] / days_with_data
         
         # match up inputs (range features) w/ output label
@@ -81,7 +84,8 @@ if __name__ == '__main__':
             X.append(range_features)
             Y.append(approval_label)
 
-    print(len(X))
+    print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X)))
+    #test_partition = -1 * int(0.2 * len(X)) # Use precisely 20% of data as validation set
     test_partition = -20
 
     X_train = X[:test_partition]
@@ -126,18 +130,22 @@ if __name__ == '__main__':
 
     for i in range(len(X_test)):
         prediction = dev_corpus_regression_model.predict(X_test[i])
-        predict_approval.append(prediction[0])
-        predict_disapproval.append(prediction[1])
+        predict_approval.append(prediction[0][0])
+        predict_disapproval.append(prediction[0][1])
         axis_vals.append(i)
         
 
     plt.figure(1)
-    plt.subplot(211)
     # red is actual, blue is predicted
-    plt.plot(axis_vals, actual_approval, 'ro', axis_vals, predict_approval, 'bo')
+    plt.subplot(211)
+    approval_actual, = plt.plot(axis_vals, actual_approval, 'ro')
+    approval_predicted, = plt.plot(axis_vals, predict_approval, 'bo')
+    plt.legend([approval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
     plt.ylabel('Approval percentage')
 
     plt.subplot(212)
-    plt.plot(axis_vals, actual_disapproval, 'ro', axis_vals, predict_disapproval, 'bo')
+    disapproval_actual, = plt.plot(axis_vals, actual_disapproval, 'ro')
+    disapproval_predicted, = plt.plot(axis_vals, predict_disapproval, 'bo')
+    plt.legend([disapproval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
     plt.ylabel('Disapproval percentage')
     plt.show()

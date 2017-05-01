@@ -7,26 +7,28 @@ from optparse import OptionParser
 import pickle
 import os
 
-def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, per_date, use_big_data):
+def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, per_date, use_big_data, min_length=5):
     myparser = article_parser_type(article_dir)
     i = 0
     doc_list = []
     date_to_docs = defaultdict(list)
+    # where doc is a textacy doc object
     for doc in myparser.yield_articles():
-        i += 1
-        doc_list.append(doc)
-
-        if per_date:
-            datestr = doc.metadata['published']
-            datetime_object = parse(datestr)
-
-            date_to_docs[datetime_object.date()].append(doc)
+        if (doc.n_sents >= min_length): # ignore junk news (articles that are too short)
+            i += 1
+            print("Processing doc #: " + str(i))
+            if per_date:
+                datestr = doc.metadata['published']
+                datetime_object = parse(datestr)
+                date_to_docs[datetime_object.date()].append(doc)
+            else:
+                doc_list.append(doc)
 
         if i >= max_articles:
             break
 
     if per_date:
-        corpora = []
+        corpora = {}
         dates = set()
         corpus_dir = os.path.join("../data/", corpus_name)
 
@@ -36,7 +38,7 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
         for date, docs in date_to_docs.items():
             dates.add(date)
             corpus_for_today = textacy.Corpus('en', docs=docs, big_ass_data=use_big_data)
-            corpora.append((date, corpus_for_today))
+            corpora[date] = corpus_for_today
             corpus_for_today.save(corpus_dir, str(date))
 
         with open(os.path.join(corpus_dir, "dates.json"), "wb") as dates_file:
