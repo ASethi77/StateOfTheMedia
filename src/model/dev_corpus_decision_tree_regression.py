@@ -7,7 +7,7 @@ import numpy
 from sklearn.model_selection import cross_val_score
 
 if __name__ == '__main__':
-	dev_corpus_100_articles = load_corpora("WebHoseDevCorpus")
+	dev_corpus_100_articles = load_corpora("WebHoseDevCorpus", True)
 
 	daily_bag_of_words = model.feature_util.webhose_corpus_to_daily_bag_of_words(dev_corpus_100_articles)
 	bag_of_words_per_day, presidential_approval_ratings = model.feature_util.daily_bag_of_words_to_regression_data(daily_bag_of_words)

@@ -7,10 +7,14 @@ import model
 import model.feature_util
 import model.sentiment_analysis
 import model.topic_extractor
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from datetime import timedelta
 from model.linear_regression_model import LinearRegressionModel
 from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
 from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
+from util.topic_matchers import topic_labels, label_index
 
 def doc_to_text(doc, max_sentences=-1):
     sentences = ""
@@ -23,6 +27,24 @@ def doc_to_text(doc, max_sentences=-1):
         num_sentences += 1
 
     return sentences
+
+# run topic extraction/sentiment analysis on the corpora
+# to build feature vectors per day
+# we expect corpora to be a map of {datetime: corpus}
+def corpora_to_day_features(corpora, sentiment_corpus):
+    output = {}
+    for date, corpus_for_day in corpora.items():
+        day_feature_vector = [0.0] * (len(label_index.keys()) + 1) # features are topic labels plus sentiment value
+        for doc in corpus_for_day:
+            doc_topic = model.topic_extractor.topic_vectorize(doc_to_text(doc))
+            doc_sentiment = model.sentiment_analysis.get_doc_sentiment_by_words(doc, sentiment_corpus)
+            for indx in range(len(doc_topic)):
+                day_feature_vector[indx] += doc_topic[indx]
+            day_feature_vector[-1] += doc_sentiment
+        for i in range(len(day_feature_vector)):
+            day_feature_vector[i] = day_feature_vector[i] / len(corpus_for_day) # normalize our features
+        output[date] = day_feature_vector
+    return output
 
 if __name__ == '__main__':
     print("Loading daily approval ratings...")
@@ -40,6 +62,7 @@ if __name__ == '__main__':
     # TODO: Get inputs, which should look like:
     X = []
     Y = []
+<<<<<<< HEAD
     for date, corpus_for_day in political_article_corpora: 
         if date not in obama_approval_ratings :
             print("Unable to find approval rating data for {}, skipping".format(date))
@@ -61,17 +84,6 @@ if __name__ == '__main__':
             print(doc_text)
             print("Sentiment score:")
             print(doc_sentiment)
-
-        '''
-        agg_features = []
-        num_examples = len(doc_input_vectors)
-        for feature_idx in range(len(doc_input_vectors[0])):
-            feature_sum = 0.0
-            for feature_vec in doc_input_vectors:
-                feature_sum += float(feature_vec[feature_idx])
-            feature_avg = feature_sum / num_examples
-            agg_features.append(feature_avg) 
-        '''
 
     print(len(X))
     test_partition = -20
@@ -96,11 +108,6 @@ if __name__ == '__main__':
     print("Actual approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(label_sanity[0],
                                                                                  label_sanity[1]))
 
-    '''print("Sanity check on training example:")
-    print(X_test)
-    print(Y_test)
-    print(dev_corpus_regression_model.predict(X_test))
-    print(dev_corpus_regression_model.evaluate(X_test, Y_test))'''
-
     k_fold_scores = cross_val_score(dev_corpus_regression_model.model, X, Y, n_jobs=-1, cv=4)
     print(k_fold_scores)
+

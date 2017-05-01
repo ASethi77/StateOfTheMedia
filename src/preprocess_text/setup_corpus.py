@@ -8,20 +8,22 @@ import pickle
 import os
 import sys
 
-def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, per_date, use_big_data):
+def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, per_date, use_big_data, min_length=5):
     myparser = article_parser_type(article_dir)
     i = 0
     doc_list = []
     date_to_docs = defaultdict(list)
+    # where doc is a textacy doc object
     for doc in myparser.yield_articles():
-        i += 1
-        doc_list.append(doc)
-
-        if per_date:
-            datestr = doc.metadata['published']
-            datetime_object = parse(datestr)
-
-            date_to_docs[datetime_object.date()].append(doc)
+        if (doc.n_sents >= min_length): # ignore junk news (articles that are too short)
+            i += 1
+            print("Processing doc #: " + str(i))
+            if per_date:
+                datestr = doc.metadata['published']
+                datetime_object = parse(datestr)
+                date_to_docs[datetime_object.date()].append(doc)
+            else:
+                doc_list.append(doc)
 
         print("Adding articles to corpus: {0}% complete.\r".format(i * 100.0 / max_articles))
         sys.stdout.flush()
@@ -30,7 +32,7 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
             break
 
     if per_date:
-        corpora = []
+        corpora = {}
         dates = set()
         corpus_dir = os.path.join("../data/", corpus_name)
 
@@ -40,7 +42,7 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
         for date, docs in date_to_docs.items():
             dates.add(date)
             corpus_for_today = textacy.Corpus('en', docs=docs, big_ass_data=use_big_data)
-            corpora.append((date, corpus_for_today))
+            corpora[date] = corpus_for_today
             corpus_for_today.save(corpus_dir, str(date))
 
         with open(os.path.join(corpus_dir, "dates.json"), "wb") as dates_file:
@@ -67,7 +69,7 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
 
     # default values    
-    if options.corpus != None:
+    if options.dir != None:
         name = "TEMP_CORPUS"
         data_dir = options.dir
         max_articles = 1000
@@ -80,6 +82,6 @@ if __name__ == '__main__':
         if options.name != None:
             name = options.name
 
-        setup_corpus(WebhoseArticleParser, data_dir, corpus, max_articles, per_date, big_data)
+        setup_corpus(WebhoseArticleParser, data_dir, name, max_articles, per_date, big_data)
     else:
         setup_dev_corpus()
