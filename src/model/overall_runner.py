@@ -1,5 +1,7 @@
 import numpy as np
 from sklearn.model_selection import cross_val_score
+from nltk.stem.lancaster import LancasterStemmer
+import textacy
 
 import model
 import model.feature_util
@@ -10,10 +12,15 @@ from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
 from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
 
-def doc_to_text(doc):
+def doc_to_text(doc, max_sentences=-1):
     sentences = ""
+    num_sentences = 1
     for sent in doc.sents:
+        if max_sentences > 0 and num_sentences > max_sentences:
+            break
+
         sentences += str(sent).strip()
+        num_sentences += 1
 
     return sentences
 
@@ -27,7 +34,7 @@ if __name__ == '__main__':
     print("done.")
 
     print("Loading corpus of political articles...")
-    political_article_corpora = setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_political_news_dataset", "WebhosePoliticalNewsArticles", 100000, per_date=True, use_big_data=True)
+    political_article_corpora = setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_political_news_dataset", "WebhosePoliticalNewsArticles", 10000, per_date=True, use_big_data=True)
     print("done.")
 
     # TODO: Get inputs, which should look like:
@@ -41,13 +48,19 @@ if __name__ == '__main__':
         approval_ratings_for_date = obama_approval_ratings[date]
         doc_input_vectors = []
         for doc in corpus_for_day:
-            doc_topic = model.topic_extractor.topic_vectorize(doc_to_text(doc))
-            doc_sentiment = model.sentiment_analysis.get_doc_sentiment_by_words(doc, sentiment_corpus)
+            doc_text = doc_to_text(doc, max_sentences=5)
+            doc_topic = model.topic_extractor.topic_vectorize(doc_text)
+            doc_sentiment = model.sentiment_analysis.get_doc_sentiment_by_words(textacy.Doc(doc_text, lang='en'), sentiment_corpus)
             doc_topic.append(doc_sentiment)
             doc_input_features = doc_topic
             doc_input_vectors.append(doc_input_features)
             X.append(doc_input_features)
             Y.append(obama_approval_ratings[date])
+            print()
+            print("Doc text:")
+            print(doc_text)
+            print("Sentiment score:")
+            print(doc_sentiment)
 
         '''
         agg_features = []

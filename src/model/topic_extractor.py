@@ -1,6 +1,7 @@
 # this class is used to turn an article into a feature vector by topic
 
 from util.topic_matchers import topic_labels, label_index
+from nltk.stem.lancaster import LancasterStemmer
 import textacy
 
 def topic_vectorize(text):
@@ -28,12 +29,39 @@ def __pre_process_text(text):
     return text.split()
 
 # returns a tuple of the non-normalized vector and the total count of signal words
-def __count_signal_words(words):
+def __count_signal_words(words, count_stems=True):
     output = [0.0] * len(label_index.keys())
+
+    topic_keywords = topic_labels.keys()
+
+    topics_stemmed = []
+    topic_labels_stemmed = {}
+    stemmer = LancasterStemmer()
+    if count_stems:
+        for keyword in topic_keywords:
+            keyword_stemmed = stemmer.stem(keyword.lower())
+            topics_stemmed.append(keyword_stemmed)
+            topic_labels_stemmed[keyword_stemmed] = topic_labels[keyword]
+
+    def is_topic_word(word):
+        word = word.lower()
+        if count_stems:
+            word_stemmed = stemmer.stem(word)
+            return word_stemmed in topics_stemmed
+        else:
+            return word in topic_keywords
+
+    def get_topic_label(word):
+        word = word.lower()
+        if count_stems:
+            return topic_labels_stemmed[stemmer.stem(word)]
+        else:
+            return topic_labels[word]
+
     signal_word_count = 0.0
     for word in words:
-        if word.lower() in topic_labels.keys():
-            topic_label = topic_labels[word.lower()]
+        if is_topic_word(word):
+            topic_label = get_topic_label(word)
             output[label_index[topic_label]] += 1.0
             signal_word_count += 1.0
     return (output, signal_word_count)
