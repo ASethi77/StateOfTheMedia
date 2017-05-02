@@ -10,10 +10,12 @@ import model.topic_extractor
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from datetime import timedelta
+from optparse import OptionParser
 from model.linear_regression_model import LinearRegressionModel
 from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
 from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
+from util.config import Config
 from util.topic_matchers import topic_labels, label_index
 
 def doc_to_text(doc, max_sentences=-1):
@@ -46,9 +48,9 @@ def corpora_to_day_features(corpora, sentiment_corpus):
         output[date] = day_feature_vector
     return output
 
-if __name__ == '__main__':
+def init_corpora():
     print("Loading daily approval ratings...")
-    obama_approval_ratings = model.feature_util.get_approval_poll_data()
+    approval_ratings = model.feature_util.get_approval_poll_data()
     print("done.")
 
     print("Loading sentiment corpus...")
@@ -56,23 +58,20 @@ if __name__ == '__main__':
     print("done.")
 
     print("Loading corpus of political articles...")
-    political_article_corpora = setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_political_news_dataset", "WebhosePoliticalNewsArticles", 10000, per_date=True, use_big_data=True)
+    article_corpora = setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_political_news_dataset", "WebhosePoliticalNewsArticles", 1000, per_date=True, use_big_data=True)
     print("done.")
+    
+    return (approval_ratings, sentiment_corpus, article_corpora)
 
-    # TODO: Get inputs, which should look like:
-    X = []
-    Y = []
-    poll_lag = 1  # modify how displaced the label should be from the features
-    moving_range_size = 15 # how big of a range should we combine sentiments
-
-    features_by_day = corpora_to_day_features(political_article_corpora, sentiment_corpus)
-    # combine individual days' features into one feature vector a range of days
-    print("Number of days of data: " + str(len(features_by_day.items())))
+# takes the features for individual days and does a running average for
+# a shifting range of days (specified in config)
+def combine_day_ranges(features_by_day):
+    output = {}
     for date, features in features_by_day.items():
         range_features = [0.0] * (len(label_index.keys()) + 1)
         days_with_data = 0 # count how many days in this range actually provided us data
         # TODO: this might be biased since days with different # of articles are weighted the same
-        for i in range(0, moving_range_size):
+        for i in range(0, Config.DAY_RANGE):
             days_away = timedelta(days=i)
             target_day = date - days_away
             curr_day_features = features_by_day.get(target_day)
@@ -92,12 +91,39 @@ if __name__ == '__main__':
             # TODO: Provide a better justification for default dates with no label
             range_features.append(50.0)
             range_features.append(50.0) '''
-        # match up inputs (range features) w/ output label
-        approval_label = obama_approval_ratings.get(date + timedelta(days=poll_lag)) # approval label should be 'poll_lag' days into the future
-        if approval_label is not None:
-            X.append(range_features)
-            Y.append(approval_label)
+        output[date] = range_features
+    return output
 
+def match_features_to_labels(features_by_range, approval_ratings):
+        X = []
+        Y = []
+        # match up inputs (range features) w/ output label
+        for date, features in features_by_range.items():
+            approval_label = approval_ratings.get(date + timedelta(days=Config.POLL_DELAY)) # approval label should be 'poll_lag' days into the future
+            if approval_label is not None:
+                X.append(features)
+                Y.append(approval_label)
+        return (X, Y)
+
+if __name__ == '__main__':
+    # add command-line flags
+    # NOTE: Set hyper-parameters in util/Config.py
+    parser = OptionParser()
+    parser.add_option("-s", "--save", dest="save", action="store_true", help="save the model to disk with a default name")
+    parser.add_option("-l", "--load", dest="load_file", help="load the model from the given file", metavar="MODEL_FILE")
+    parser.add_option("-p", "--plot", dest="plot_results", action="store_true", help="plot the eval results")
+    parser.add_option("-e", "--evaluate", dest="evaluate", action="store_true", help="run k-fold cross validation on the data")
+    parser.add_option("-m", "--model", dest="model_type", help="run with the given model type", metavar="MODEL_TYPE")
+     
+    # load various corpora and labels  
+    approval_ratings, sentiment_corpus, political_article_corpora = init_corpora() 
+    X = []
+    Y = []
+ 
+    features_by_day = corpora_to_day_features(political_article_corpora, sentiment_corpus)
+    print("Number of days of data: " + str(len(features_by_day.items())))
+    features_by_range = combine_day_ranges(features_by_day)
+    X, Y = match_features_to_labels(features_by_range, approval_ratings)
     print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X)))
     test_partition = -1 * int(0.35 * len(X)) # Use a percentage of data as validation set
 
@@ -124,8 +150,6 @@ if __name__ == '__main__':
     k_fold_scores = cross_val_score(dev_corpus_regression_model.model, X, Y, n_jobs=-1, cv=4)
     print(k_fold_scores)
 
-<<<<<<< Updated upstream
-=======
     # ------------------------ Plotting Results ----------------------------------------
     actual_approval = []
     actual_disapproval = []
@@ -161,4 +185,3 @@ if __name__ == '__main__':
     plt.legend([disapproval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
     plt.ylabel('Disapproval percentage')
     plt.show()
->>>>>>> Stashed changes
