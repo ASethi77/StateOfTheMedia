@@ -6,6 +6,7 @@ from dateutil.parser import parse
 from optparse import OptionParser
 import pickle
 import os
+import sys
 
 def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, per_date, use_big_data, min_length=5):
     myparser = article_parser_type(article_dir)
@@ -23,6 +24,9 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
                 date_to_docs[datetime_object.date()].append(doc)
             else:
                 doc_list.append(doc)
+
+        print("Adding articles to corpus: {0}% complete.\r".format(i * 100.0 / max_articles))
+        sys.stdout.flush()
 
         if i >= max_articles:
             break

@@ -1,5 +1,7 @@
 import numpy as np
 from sklearn.model_selection import cross_val_score
+from nltk.stem.lancaster import LancasterStemmer
+import textacy
 
 import model
 import model.feature_util
@@ -14,10 +16,15 @@ from preprocess_text.setup_corpus import setup_corpus
 from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
 from util.topic_matchers import topic_labels, label_index
 
-def doc_to_text(doc):
+def doc_to_text(doc, max_sentences=-1):
     sentences = ""
+    num_sentences = 1
     for sent in doc.sents:
+        if max_sentences > 0 and num_sentences > max_sentences:
+            break
+
         sentences += str(sent).strip()
+        num_sentences += 1
 
     return sentences
 
@@ -50,42 +57,34 @@ if __name__ == '__main__':
 
     print("Loading corpus of political articles...")
     political_article_corpora = setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_political_news_dataset", "WebhosePoliticalNewsArticles", 10000, per_date=True, use_big_data=True)
-    #political_article_corpora = load_corpora("WebhosePoliticalNewsArticles", False)
-    #political_article_corpora = load_corpora("WebHoseDevCorpus", True)
     print("done.")
 
     # TODO: Get inputs, which should look like:
     X = []
     Y = []
-    poll_lag = 1  # modify how displaced the label should be from the features
-    moving_range_size = 15 # how big of a range should we combine sentiments
+    for date, corpus_for_day in political_article_corpora: 
+        if date not in obama_approval_ratings :
+            print("Unable to find approval rating data for {}, skipping".format(date))
+            continue
 
-    features_by_day = corpora_to_day_features(political_article_corpora, sentiment_corpus)
-    # combine individual days' features into one feature vector a range of days
-    print("Number of days of data: " + str(len(features_by_day.items())))
-    for date, features in features_by_day.items():
-        range_features = [0.0] * (len(label_index.keys()) + 1)
-        days_with_data = 0 # count how many days in this range actually provided us data
-        # TODO: this might be biased since days with different # of articles are weighted the same
-        for i in range(0, moving_range_size):
-            days_away = timedelta(days=i)
-            target_day = date - days_away
-            curr_day_features = features_by_day.get(target_day)
-            if curr_day_features is not None:
-                days_with_data += 1
-                for i in range(len(curr_day_features)):
-                    range_features[i] += curr_day_features[i]
-        for i in range(len(range_features)):
-            range_features[i] = range_features[i] / days_with_data
-        
-        # match up inputs (range features) w/ output label
-        approval_label = obama_approval_ratings.get(date + timedelta(days=poll_lag)) # approval label should be 'poll_lag' days into the future
-        if approval_label is not None:
-            X.append(range_features)
-            Y.append(approval_label)
+        approval_ratings_for_date = obama_approval_ratings[date]
+        doc_input_vectors = []
+        for doc in corpus_for_day:
+            doc_text = doc_to_text(doc, max_sentences=5)
+            doc_topic = model.topic_extractor.topic_vectorize(doc_text)
+            doc_sentiment = model.sentiment_analysis.get_doc_sentiment_by_words(textacy.Doc(doc_text, lang='en'), sentiment_corpus)
+            doc_topic.append(doc_sentiment)
+            doc_input_features = doc_topic
+            doc_input_vectors.append(doc_input_features)
+            X.append(doc_input_features)
+            Y.append(obama_approval_ratings[date])
+            print()
+            print("Doc text:")
+            print(doc_text)
+            print("Sentiment score:")
+            print(doc_sentiment)
 
-    print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X)))
-    #test_partition = -1 * int(0.2 * len(X)) # Use precisely 20% of data as validation set
+    print(len(X))
     test_partition = -20
 
     X_train = X[:test_partition]
@@ -108,44 +107,6 @@ if __name__ == '__main__':
     print("Actual approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(label_sanity[0],
                                                                                  label_sanity[1]))
 
-    '''print("Sanity check on training example:")
-    print(X_test)
-    print(Y_test)
-    print(dev_corpus_regression_model.predict(X_test))
-    print(dev_corpus_regression_model.evaluate(X_test, Y_test))'''
-
     k_fold_scores = cross_val_score(dev_corpus_regression_model.model, X, Y, n_jobs=-1, cv=4)
     print(k_fold_scores)
 
-    # ------------------------ Plotting Results ----------------------------------------
-    actual_approval = []
-    actual_disapproval = []
-    predict_approval = []
-    predict_disapproval = []
-    axis_vals = []
-    
-    for label in Y_test:
-        actual_approval.append(label[0])
-        actual_disapproval.append(label[1])
-
-    for i in range(len(X_test)):
-        prediction = dev_corpus_regression_model.predict(X_test[i])
-        predict_approval.append(prediction[0][0])
-        predict_disapproval.append(prediction[0][1])
-        axis_vals.append(i)
-        
-
-    plt.figure(1)
-    # red is actual, blue is predicted
-    plt.subplot(211)
-    approval_actual, = plt.plot(axis_vals, actual_approval, 'ro')
-    approval_predicted, = plt.plot(axis_vals, predict_approval, 'bo')
-    plt.legend([approval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
-    plt.ylabel('Approval percentage')
-
-    plt.subplot(212)
-    disapproval_actual, = plt.plot(axis_vals, actual_disapproval, 'ro')
-    disapproval_predicted, = plt.plot(axis_vals, predict_disapproval, 'bo')
-    plt.legend([disapproval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
-    plt.ylabel('Disapproval percentage')
-    plt.show()

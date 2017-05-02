@@ -3,19 +3,22 @@ from util.consts import Paths
 
 def get_doc_sentiment_by_words(doc, sentiment_corpus):
 	sum_sentiments = 0.0
-	positive_count = 0.0
-	negative_count = 0.0
+	pos_sentiments = 0
+	neg_sentiments = 0
 	for token in doc:
 		token = str(token)
 		if token in sentiment_corpus:
-			'''sum_sentiments += sentiment_corpus[token]''' # I theorize that the difference actually forces extremes. Use ratios instead
-			if sentiment_corpus[token] > 0.0:
-				positive_count += 1.0
+			sentiment = sentiment_corpus[token]
+			if sentiment > 0:
+				pos_sentiments += 1
 			else:
-				negative_count += 1.0
-	if negative_count < 1.0:
-		return 1.0 # avoid divide by zero errors. Only positive sentiment 
-	return tanh(positive_count / negative_count)
+				neg_sentiments += 1	
+			sum_sentiments += sentiment_corpus[token]
+	total_sentiments = pos_sentiments + neg_sentiments
+	sentiment_ratio = 0.0
+	if total_sentiments > 0:
+		sentiment_ratio = float((pos_sentiments if pos_sentiments > neg_sentiments else -1 * neg_sentiments) / total_sentiments)
+	return sentiment_ratio
 
 def load_sentiment_corpus(tff_path=Paths.WORD_SENTIMENT_CORPUS_PATH.value):
 	words = []
