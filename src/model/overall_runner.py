@@ -35,8 +35,12 @@ def doc_to_text(doc, max_sentences=-1):
 def corpora_to_day_features(corpora, sentiment_corpus):
     output = {}
     for date, corpus_for_day in corpora.items():
+        print("processing day with {0} articles".format(len(corpus_for_day)))
         day_feature_vector = [0.0] * (len(label_index.keys()) + 1) # features are topic labels plus sentiment value
+        doc_num = 0
         for doc in corpus_for_day:
+            print("\tprocessing doc {0}".format(doc_num))
+            doc_num += 1
             doc_topic = model.topic_extractor.topic_vectorize(doc_to_text(doc))
             doc_sentiment = model.sentiment_analysis.get_doc_sentiment_by_words(doc, sentiment_corpus)
             for indx in range(len(doc_topic)):
