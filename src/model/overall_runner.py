@@ -16,6 +16,7 @@ from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
 from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
 from util.config import Config
+from preprocess_text.document import Document
 from util.topic_matchers import topic_labels, label_index
 
 def doc_to_text(doc, max_sentences=-1):
@@ -58,7 +59,9 @@ def init_corpora():
     print("done.")
 
     print("Loading corpus of political articles...")
-    article_corpora = setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_political_news_dataset", "WebhosePoliticalNewsArticles", 1000, per_date=True, use_big_data=True)
+    num_articles = 100000
+    corpus_name = "WebhosePoliticalArticles-{}-Docs".format(num_articles)
+    article_corpora = load_corpora("WebhosePoliticalArticles-100000-Docs", "/opt/nlp_shared/corpora/WebhosePoliticalNewsCorpora/")
     print("done.")
     
     return (approval_ratings, sentiment_corpus, article_corpora)

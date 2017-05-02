@@ -1,5 +1,6 @@
 # coding: utf-8
 from .article_parsers.webhose_article_parser import WebhoseArticleParser
+from .article_parsers.nyt_article_parser import NYTArticleParser
 import textacy
 from collections import defaultdict
 from dateutil.parser import parse
@@ -8,12 +9,17 @@ import pickle
 import os
 import sys
 
-def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, per_date, use_big_data, min_length=5):
+from .corpus import Corpus
+
+def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, per_date, use_big_data, min_length=5, corpus_dir="/opt/nlp_shared/corpora/WebhosePoliticalNewsCorpora"):
     myparser = article_parser_type(article_dir)
     i = 0
     doc_list = []
     date_to_docs = defaultdict(list)
+    print(type(myparser))
+    print(article_parser_type)
     # where doc is a textacy doc object
+    num_articles = myparser.num_articles()
     for doc in myparser.yield_articles():
         if (doc.n_sents >= min_length): # ignore junk news (articles that are too short)
             i += 1
@@ -25,7 +31,7 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
             else:
                 doc_list.append(doc)
 
-        print("Adding articles to corpus: {0}% complete.\r".format(i * 100.0 / max_articles))
+        print("Adding articles to corpus: {0}% complete ({1} of {2}).\r".format(i * 100.0 / num_articles, i, num_articles))
         sys.stdout.flush()
 
         if i >= max_articles:
@@ -34,14 +40,14 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
     if per_date:
         corpora = {}
         dates = set()
-        corpus_dir = os.path.join("../data/", corpus_name)
+        corpus_dir = os.path.join(corpus_dir, corpus_name)
 
         if not os.path.exists(corpus_dir):
             os.makedirs(corpus_dir)
 
         for date, docs in date_to_docs.items():
             dates.add(date)
-            corpus_for_today = textacy.Corpus('en', docs=docs, big_ass_data=use_big_data)
+            corpus_for_today = Corpus(lang='en', docs=docs, big_ass_data=use_big_data, corpus_dir=corpus_dir)
             corpora[date] = corpus_for_today
             corpus_for_today.save(corpus_dir, str(date))
 
@@ -50,10 +56,13 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
 
         return corpora
     else:
-        return textacy.Corpus("en", docs=doc_list)
+        return Corpus("en", docs=doc_list, big_ass_data=use_big_data)
 
 def setup_dev_corpus(corpus_name="WebHoseDevCorpus", max_articles=100, per_date=True, use_big_data=False):
     return setup_corpus(WebhoseArticleParser, "../data/Articles/WebHoseDevCorpus", corpus_name, max_articles, per_date, use_big_data)
+
+def setup_nyt_corpus():
+    return setup_corpus(NYTArticleParser, "/opt/nlp_shared/data/news_articles/nytimes/nytimes_json/", "NYTCorpus", 1e8, True, True, corpus_dir="/opt/nlp_shared/corpora/NytCorpora", min_length=1)
 
 def setup_100M_corpus(corpus_name="HundredMegsCorpus", per_date=True, use_big_data=True):
     return setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_english_dataset/WebHoseDataset-16275-Articles", corpus_name, 17000, per_date, use_big_data)
@@ -84,4 +93,4 @@ if __name__ == '__main__':
 
         setup_corpus(WebhoseArticleParser, data_dir, name, max_articles, per_date, big_data)
     else:
-        setup_dev_corpus()
+        setup_nyt_corpus()
