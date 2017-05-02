@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="timestools">
+    <CLASSES>
+      <root url="jar:///opt/nlp_shared/data/news_articles/nytimes/LDC2008T19/tools/build/timestools.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
