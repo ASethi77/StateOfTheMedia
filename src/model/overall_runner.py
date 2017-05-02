@@ -62,7 +62,6 @@ if __name__ == '__main__':
     # TODO: Get inputs, which should look like:
     X = []
     Y = []
-<<<<<<< HEAD
     for date, corpus_for_day in political_article_corpora: 
         if date not in obama_approval_ratings :
             print("Unable to find approval rating data for {}, skipping".format(date))
