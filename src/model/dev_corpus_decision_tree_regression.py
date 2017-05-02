@@ -23,8 +23,11 @@ if __name__ == '__main__':
 	approval_rating_prediction = dev_corpus_regression_model.predict([bag_of_words_sanity])[0]
 
 	print("Sanity checking regression on trained example")
-	print("Predicted approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(approval_rating_prediction[0], approval_rating_prediction[1]))
-	print("Actual approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(approval_rating_sanity[0], approval_rating_sanity[1]))
+	for i in range(0, 1):
+		approval_rating_prediction = dev_corpus_regression_model.predict([bag_of_words_sanity])[i]
+		approval_rating_sanity = approval_ratings_train[i]
+		print("Predicted approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(approval_rating_prediction[0], approval_rating_prediction[1]))
+		print("Actual approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(approval_rating_sanity[0], approval_rating_sanity[1]))
 
 	print("Sanity check on training example:")
 	print(dev_corpus_regression_model.evaluate(bag_of_words_test, approval_ratings_test))
