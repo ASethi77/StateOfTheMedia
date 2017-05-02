@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import shutil
+from preprocess_text.document import Document
 
 class CorpusDocMgr:
     def __init__(self):
@@ -48,7 +49,7 @@ class CorpusDocListMgr(CorpusDocMgr):
         return len(self.docs)
 
 class CorpusDocFileMgr(CorpusDocMgr):
-    def __init__(self, corpus_dir=""):
+    def __init__(self, corpus_dir="", clean_on_exit=True):
         CorpusDocMgr.__init__(self)
 
         self.DOC_PREFIX = "corpus-doc-{0}-"
@@ -59,6 +60,7 @@ class CorpusDocFileMgr(CorpusDocMgr):
             self.temp_docs_dir = corpus_dir
         self.next_doc_index = 0
         self.doc_index_to_hash = {}
+        self.clean_on_exit = clean_on_exit
 
         print("CREATED CORPUS DOC MGR AT {0}".format(self.temp_docs_dir))
 
@@ -125,4 +127,5 @@ class CorpusDocFileMgr(CorpusDocMgr):
 
     def __del__(self):
         CorpusDocMgr.__del__(self)
-        self.clean_files()
+        if self.clean_on_exit:
+            self.clean_files()

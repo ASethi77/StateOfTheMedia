@@ -14,7 +14,7 @@ class Corpus:
         # industrial strength
 
         if big_ass_data:
-            self.docs = CorpusDocFileMgr(corpus_dir)
+            self.docs = CorpusDocFileMgr(corpus_dir, clean_on_exit=False)
         else:
             self.docs = CorpusDocListMgr()
 
@@ -32,7 +32,11 @@ class Corpus:
         return self.n_docs
 
     def __repr__(self):
-        return 'Corpus({} docs; {} tokens)'.format(self.n_docs, self.n_tokens)
+        return 'Corpus({} docs)'.format(self.n_docs)
+
+    def __iter__(self):
+        for doc in self.docs:
+            yield doc
 
     def get_filename(path, name=""):
         DOC_NAME_SUFFIX = "-industrial_strength_corpus.dat"
@@ -45,9 +49,9 @@ class Corpus:
         with open(corpus_path, "wb+") as corpus_file:
             pickle.dump(self, corpus_file)
 
-    def load(self, path, name=""):
+    def load(path, name=""):
         corpus_path = Corpus.get_filename(path, name)
         corpus = None
-        with open(corpus_path, "bb+") as corpus_file:
+        with open(corpus_path, "rb+") as corpus_file:
             corpus = pickle.load(corpus_file)
         return corpus

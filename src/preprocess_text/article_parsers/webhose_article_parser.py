@@ -2,6 +2,7 @@ import os
 import glob
 import textacy
 from .article_parser import ArticleParser
+from preprocess_text.document import Document
 
 class WebhoseArticleParser(ArticleParser):
 	def __init__(self, articles_directory):
@@ -18,4 +19,4 @@ class WebhoseArticleParser(ArticleParser):
 			metadata_full = {}
 			for data in metadata:
 				metadata_full = {**metadata_full, **data}
-			yield textacy.Doc(content_full, metadata=metadata_full, lang="en")
+			yield Document(content_full, metadata=metadata_full, lang="en")

@@ -14,6 +14,7 @@ from model.linear_regression_model import LinearRegressionModel
 from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
 from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
+from preprocess_text.document import Document
 from util.topic_matchers import topic_labels, label_index
 
 def doc_to_text(doc, max_sentences=-1):
@@ -56,13 +57,14 @@ if __name__ == '__main__':
     print("done.")
 
     print("Loading corpus of political articles...")
-    political_article_corpora = setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_political_news_dataset", "WebhosePoliticalNewsArticles", 10000, per_date=True, use_big_data=True)
+    num_articles = 100000
+    corpus_name = "WebhosePoliticalArticles-{}-Docs".format(num_articles)
+    political_article_corpora = load_corpora("WebhosePoliticalArticles-100000-Docs", "/opt/nlp_shared/corpora/WebhosePoliticalNewsCorpora/")
     print("done.")
 
-    # TODO: Get inputs, which should look like:
     X = []
     Y = []
-    for date, corpus_for_day in political_article_corpora: 
+    for date, corpus_for_day in political_article_corpora.items(): 
         if date not in obama_approval_ratings :
             print("Unable to find approval rating data for {}, skipping".format(date))
             continue
@@ -72,17 +74,12 @@ if __name__ == '__main__':
         for doc in corpus_for_day:
             doc_text = doc_to_text(doc, max_sentences=5)
             doc_topic = model.topic_extractor.topic_vectorize(doc_text)
-            doc_sentiment = model.sentiment_analysis.get_doc_sentiment_by_words(textacy.Doc(doc_text, lang='en'), sentiment_corpus)
+            doc_sentiment = model.sentiment_analysis.get_doc_sentiment_by_words(Document(doc_text, lang='en'), sentiment_corpus)
             doc_topic.append(doc_sentiment)
             doc_input_features = doc_topic
             doc_input_vectors.append(doc_input_features)
             X.append(doc_input_features)
             Y.append(obama_approval_ratings[date])
-            print()
-            print("Doc text:")
-            print(doc_text)
-            print("Sentiment score:")
-            print(doc_sentiment)
 
     print(len(X))
     test_partition = -20
