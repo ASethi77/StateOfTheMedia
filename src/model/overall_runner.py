@@ -10,10 +10,12 @@ import model.topic_extractor
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from datetime import timedelta
+from optparse import OptionParser
 from model.linear_regression_model import LinearRegressionModel
 from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
 from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
+from util.config import Config, Models
 from preprocess_text.document import Document
 from util.topic_matchers import topic_labels, label_index
 
@@ -57,9 +59,9 @@ def corpora_to_day_features(corpora, sentiment_corpus):
     threadpool.join()
     return output
 
-if __name__ == '__main__':
+def init_corpora():
     print("Loading daily approval ratings...")
-    obama_approval_ratings = model.feature_util.get_approval_poll_data()
+    approval_ratings = model.feature_util.get_approval_poll_data()
     print("done.")
 
     print("Loading sentiment corpus...")
@@ -69,22 +71,20 @@ if __name__ == '__main__':
     print("Loading corpus of political articles...")
     num_articles = 100
     corpus_name = "WebhosePoliticalArticles-{}-Docs".format(num_articles)
-    political_article_corpora = load_corpora("WebhosePoliticalArticles-100000-Docs", "/opt/nlp_shared/corpora/WebhosePoliticalNewsCorpora/")
+    article_corpora = load_corpora("WebhosePoliticalArticles-100000-Docs", "/opt/nlp_shared/corpora/WebhosePoliticalNewsCorpora/")
     print("done.")
+    
+    return (approval_ratings, sentiment_corpus, article_corpora)
 
-    X = []
-    Y = []
-    poll_lag = 1  # modify how displaced the label should be from the features
-    moving_range_size = 15 # how big of a range should we combine sentiments
-
-    features_by_day = corpora_to_day_features(political_article_corpora, sentiment_corpus)
-    # combine individual days' features into one feature vector a range of days
-    print("Number of days of data: " + str(len(features_by_day.items())))
+# takes the features for individual days and does a running average for
+# a shifting range of days (specified in config)
+def combine_day_ranges(features_by_day):
+    output = {}
     for date, features in features_by_day.items():
         range_features = [0.0] * (len(label_index.keys()) + 1)
         days_with_data = 0 # count how many days in this range actually provided us data
         # TODO: this might be biased since days with different # of articles are weighted the same
-        for i in range(0, moving_range_size):
+        for i in range(0, Config.DAY_RANGE):
             days_away = timedelta(days=i)
             target_day = date - days_away
             curr_day_features = features_by_day.get(target_day)
@@ -104,14 +104,41 @@ if __name__ == '__main__':
             # TODO: Provide a better justification for default dates with no label
             range_features.append(50.0)
             range_features.append(50.0) '''
-        # match up inputs (range features) w/ output label
-        approval_label = obama_approval_ratings.get(date + timedelta(days=poll_lag)) # approval label should be 'poll_lag' days into the future
-        if approval_label is not None:
-            X.append(range_features)
-            Y.append(approval_label)
+        output[date] = range_features
+    return output
 
+def match_features_to_labels(features_by_range, approval_ratings):
+        X = []
+        Y = []
+        # match up inputs (range features) w/ output label
+        for date, features in features_by_range.items():
+            approval_label = approval_ratings.get(date + timedelta(days=Config.POLL_DELAY)) # approval label should be 'poll_lag' days into the future
+            if approval_label is not None:
+                X.append(features)
+                Y.append(approval_label)
+        return (X, Y)
+
+if __name__ == '__main__':
+    # add command-line flags
+    # NOTE: Set hyper-parameters in util/Config.py
+    parser = OptionParser()
+    parser.add_option("-s", "--save", dest="save", action="store_true", help="save the model to disk with a default name")
+    parser.add_option("-l", "--load", dest="load_file", help="load the model from the given file", metavar="MODEL_FILE")
+    parser.add_option("-p", "--plot", dest="plot_results", action="store_true", help="plot the eval results")
+    parser.add_option("-e", "--evaluate", dest="evaluate", action="store_true", help="run k-fold cross validation on the data")
+    parser.add_option("-m", "--model", dest="model_type", help="run with the given model type", metavar="MODEL_TYPE")
+    (options, args) = parser.parse_args()
+ 
+    # load various corpora and labels  
+    approval_ratings, sentiment_corpus, political_article_corpora = init_corpora() 
+ 
+    features_by_day = corpora_to_day_features(political_article_corpora, sentiment_corpus)
+    print("Number of days of data: " + str(len(features_by_day.items())))
+    features_by_range = combine_day_ranges(features_by_day)
+    X, Y = match_features_to_labels(features_by_range, approval_ratings)
     print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X)))
-    test_partition = -1 * int(0.35 * len(X)) # Use a percentage of data as validation set
+    
+     test_partition = int(Config.TRAINING_PARTITION / 100.0  * len(X)) # Use a percentage of data as validation set
 
     X_train = X[:test_partition]
     Y_train = Y[:test_partition]
@@ -119,13 +146,29 @@ if __name__ == '__main__':
     X_test = X[test_partition:]
     Y_test = Y[test_partition:]
 
-    dev_corpus_regression_model = LinearRegressionModel([X_train, Y_train])
-    dev_corpus_regression_model.train()
 
-    input_sanity = X_train[0]
-    label_sanity = Y_train[0]
-    approval_rating_prediction = dev_corpus_regression_model.predict([input_sanity])[0]
-    print(approval_rating_prediction)
+    # setup model and configurations
+    model = None
+    if options.model is None or options.model == Models.LINEAR_REGRESSION:
+        model = LinearRegressionModel([X_train, Y_train])
+    elif options.model == Models.MLP:
+        model = MLPRegressionModel([X_train, Y_train])
+
+
+    if options.load is not None:
+        model.load(options.load)
+    else:
+        model.train()
+    if options.save:
+        model.save("TEMP_MODEL_" + str(datetime.datetime.now()))
+    
+    if options.evaluate:
+        
+
+        input_sanity = X_train[0]
+        label_sanity = Y_train[0]
+        approval_rating_prediction = dev_corpus_regression_model.predict([input_sanity])[0]
+        print(approval_rating_prediction)
 
     print("Sanity checking regression on trained example")
     print("Predicted approval ratings:\n\tApprove: {0}".format(approval_rating_prediction[0]))
@@ -135,11 +178,12 @@ if __name__ == '__main__':
     print(k_fold_scores)
 
     # ------------------------ Plotting Results ----------------------------------------
-    actual_approval = []
-    actual_disapproval = []
-    predict_approval = []
-    predict_disapproval = []
-    axis_vals = []
+    if options.plot:
+        actual_approval = []
+        actual_disapproval = []
+        predict_approval = []
+        predict_disapproval = []
+        axis_vals = []
     
     for label in Y_test:
         actual_approval.append(label[0])
@@ -154,8 +198,8 @@ if __name__ == '__main__':
         axis_vals.append(i)
         
 
-    plt.figure(1)
-    print("RED VALUES ARE ACTUAL - BLUE VALUES ARE PREDICTED") # just a nice console reminder
+        plt.figure(1)
+        print("RED VALUES ARE ACTUAL - BLUE VALUES ARE PREDICTED") # just a nice console reminder
     # red is actual, blue is predicted
     plt.subplot(211)
     approval_actual, = plt.plot(axis_vals, actual_approval, 'ro')

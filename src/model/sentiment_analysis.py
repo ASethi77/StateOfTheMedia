@@ -1,5 +1,5 @@
 from numpy import tanh
-from util.consts import Paths
+from util.config import Paths
 
 def get_doc_sentiment_by_words(doc, sentiment_corpus):
 	sum_sentiments = 0.0
