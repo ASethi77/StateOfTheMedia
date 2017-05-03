@@ -65,7 +65,7 @@ def setup_nyt_corpus():
     return setup_corpus(NYTArticleParser, "/opt/nlp_shared/data/news_articles/nytimes/nytimes_json/", "NYTCorpus", 1e8, True, True, corpus_dir="/opt/nlp_shared/corpora/NytCorpora", min_length=1)
 
 def setup_100M_corpus(corpus_name="HundredMegsCorpus", per_date=True, use_big_data=True):
-    return setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_english_dataset/WebHoseDataset-16275-Articles", corpus_name, 17000, per_date, use_big_data)
+    return setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_english_dataset/WebHoseDataset-16275-Articles", corpus_name, 1000, per_date, use_big_data)
 
 if __name__ == '__main__':
     # add command-line flags

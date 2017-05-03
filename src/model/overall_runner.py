@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.model_selection import cross_val_score
-from nltk.stem.lancaster import LancasterStemmer
 import textacy
+from multiprocessing.dummy import Pool as ThreadPool 
 
 import model
 import model.feature_util
@@ -29,26 +29,32 @@ def doc_to_text(doc, max_sentences=-1):
 
     return sentences
 
+def corpus_to_day_features(date, corpus_for_day, sentiment_corpus, output):
+    print("processing day with {0} articles".format(len(corpus_for_day)))
+    day_feature_vector = [0.0] * (len(label_index.keys()) + 1) # features are topic labels plus sentiment value
+    doc_num = 0
+    for doc in corpus_for_day:
+        print("\tprocessing doc {0}".format(doc_num))
+        doc_num += 1
+        doc_topic = model.topic_extractor.topic_vectorize(doc_to_text(doc, max_sentences=3))
+        doc_sentiment = model.sentiment_analysis.get_doc_sentiment_by_words(doc, sentiment_corpus)
+        for indx in range(len(doc_topic)):
+            day_feature_vector[indx] += doc_topic[indx]
+        day_feature_vector[-1] += doc_sentiment
+    for i in range(len(day_feature_vector)):
+        day_feature_vector[i] = day_feature_vector[i] / len(corpus_for_day) # normalize our features
+    output[date] = day_feature_vector
+
 # run topic extraction/sentiment analysis on the corpora
 # to build feature vectors per day
 # we expect corpora to be a map of {datetime: corpus}
 def corpora_to_day_features(corpora, sentiment_corpus):
     output = {}
-    for date, corpus_for_day in corpora.items():
-        print("processing day with {0} articles".format(len(corpus_for_day)))
-        day_feature_vector = [0.0] * (len(label_index.keys()) + 1) # features are topic labels plus sentiment value
-        doc_num = 0
-        for doc in corpus_for_day:
-            print("\tprocessing doc {0}".format(doc_num))
-            doc_num += 1
-            doc_topic = model.topic_extractor.topic_vectorize(doc_to_text(doc))
-            doc_sentiment = model.sentiment_analysis.get_doc_sentiment_by_words(doc, sentiment_corpus)
-            for indx in range(len(doc_topic)):
-                day_feature_vector[indx] += doc_topic[indx]
-            day_feature_vector[-1] += doc_sentiment
-        for i in range(len(day_feature_vector)):
-            day_feature_vector[i] = day_feature_vector[i] / len(corpus_for_day) # normalize our features
-        output[date] = day_feature_vector
+    threadpool = ThreadPool(4)
+    arg_list = [(item[0], item[1], sentiment_corpus, output) for item in corpora.items()]
+    threadpool.starmap(corpus_to_day_features, arg_list)
+    threadpool.close()
+    threadpool.join()
     return output
 
 if __name__ == '__main__':
@@ -61,7 +67,7 @@ if __name__ == '__main__':
     print("done.")
 
     print("Loading corpus of political articles...")
-    num_articles = 100000
+    num_articles = 100
     corpus_name = "WebhosePoliticalArticles-{}-Docs".format(num_articles)
     political_article_corpora = load_corpora("WebhosePoliticalArticles-100000-Docs", "/opt/nlp_shared/corpora/WebhosePoliticalNewsCorpora/")
     print("done.")
@@ -122,12 +128,10 @@ if __name__ == '__main__':
     print(approval_rating_prediction)
 
     print("Sanity checking regression on trained example")
-    print("Predicted approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(approval_rating_prediction[0],
-                                                                                    approval_rating_prediction[1]))
-    print("Actual approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(label_sanity[0],
-                                                                                 label_sanity[1]))
+    print("Predicted approval ratings:\n\tApprove: {0}".format(approval_rating_prediction[0]))
+    print("Actual approval ratings:\n\tApprove: {0}%".format(label_sanity[0]))
 
-    k_fold_scores = cross_val_score(dev_corpus_regression_model.model, X, Y, n_jobs=-1, cv=4)
+    k_fold_scores = cross_val_score(dev_corpus_regression_model.model, X, Y, n_jobs=-1, cv=4, scoring="neg_mean_squared_error")
     print(k_fold_scores)
 
     # ------------------------ Plotting Results ----------------------------------------
@@ -139,14 +143,14 @@ if __name__ == '__main__':
     
     for label in Y_test:
         actual_approval.append(label[0])
-        actual_disapproval.append(label[1])
+        #actual_disapproval.append(label[1])
 
     for i in range(len(X_test)):
         print("Predicting day " + str(i) + " given: " + str(X_test[i]))
         prediction = dev_corpus_regression_model.predict(X_test[i])
         print("Output: " + str(prediction))
-        predict_approval.append(prediction[0][0])
-        predict_disapproval.append(prediction[0][1])
+        predict_approval.append(prediction[0])
+        #predict_disapproval.append(prediction[0])
         axis_vals.append(i)
         
 
@@ -159,9 +163,12 @@ if __name__ == '__main__':
     plt.legend([approval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
     plt.ylabel('Approval percentage')
 
-    plt.subplot(212)
+    
+    '''plt.subplot(212)
     disapproval_actual, = plt.plot(axis_vals, actual_disapproval, 'ro')
     disapproval_predicted, = plt.plot(axis_vals, predict_disapproval, 'bo')
     plt.legend([disapproval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
     plt.ylabel('Disapproval percentage')
+    '''
     plt.show()
+    
