@@ -41,6 +41,12 @@ extremely noisy.
 
 As described in our last blog post, we follow a basic approach of computing sentiment as
 
-$$tanh(\frac{count(\texttt{positive words})}{count(\texttt{negative words})})$$
+$$ tanh(\frac{\texttt{count(positive words)}}{\texttt{count(negative words)}}) $$
 
-where positive and negative words were defined by the MPQA sentiment lexicon dataset.
+where positive and negative words were "signal words" defined by the MPQA sentiment lexicon dataset. This was
+problematic because the \\( tanh \\) function "saturates" quickly for values greater than 2
+or less than -2. In order to appropriately normalize sentiment values for articles, we changed our
+model to compute \\[ \texttt{count(positive words)} / \texttt{count(signal words)} \\] if there are
+more positive words in the article, or \\[ - \texttt{count(negative words)} / \texttt{count(signal words)} \\]
+if there are more negative words in the article. This allows us to normalize sentiment values between
+-1 and 1, but prevents us from "saturating" the strength of the sentiment.
