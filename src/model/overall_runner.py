@@ -115,7 +115,7 @@ def match_features_to_labels(features_by_range, approval_ratings):
             approval_label = approval_ratings.get(date + timedelta(days=Config.POLL_DELAY)) # approval label should be 'poll_lag' days into the future
             if approval_label is not None:
                 X.append(features)
-                Y.append(approval_label)
+                Y.append(approval_label[:-1])  # remove count of number of polls contributing to daily rating
         return (X, Y)
 
 if __name__ == '__main__':
