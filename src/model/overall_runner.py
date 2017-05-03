@@ -15,7 +15,7 @@ from model.linear_regression_model import LinearRegressionModel
 from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
 from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
-from util.config import Config
+from util.config import Config, Models
 from preprocess_text.document import Document
 from util.topic_matchers import topic_labels, label_index
 
@@ -117,18 +117,18 @@ if __name__ == '__main__':
     parser.add_option("-p", "--plot", dest="plot_results", action="store_true", help="plot the eval results")
     parser.add_option("-e", "--evaluate", dest="evaluate", action="store_true", help="run k-fold cross validation on the data")
     parser.add_option("-m", "--model", dest="model_type", help="run with the given model type", metavar="MODEL_TYPE")
-     
+    (options, args) = parser.parse_args()
+ 
     # load various corpora and labels  
     approval_ratings, sentiment_corpus, political_article_corpora = init_corpora() 
-    X = []
-    Y = []
  
     features_by_day = corpora_to_day_features(political_article_corpora, sentiment_corpus)
     print("Number of days of data: " + str(len(features_by_day.items())))
     features_by_range = combine_day_ranges(features_by_day)
     X, Y = match_features_to_labels(features_by_range, approval_ratings)
     print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X)))
-    test_partition = -1 * int(0.35 * len(X)) # Use a percentage of data as validation set
+    
+     test_partition = int(Config.TRAINING_PARTITION / 100.0  * len(X)) # Use a percentage of data as validation set
 
     X_train = X[:test_partition]
     Y_train = Y[:test_partition]
@@ -136,55 +136,70 @@ if __name__ == '__main__':
     X_test = X[test_partition:]
     Y_test = Y[test_partition:]
 
-    dev_corpus_regression_model = LinearRegressionModel([X_train, Y_train])
-    dev_corpus_regression_model.train()
 
-    input_sanity = X_train[0]
-    label_sanity = Y_train[0]
-    approval_rating_prediction = dev_corpus_regression_model.predict([input_sanity])[0]
-    print(approval_rating_prediction)
+    # setup model and configurations
+    model = None
+    if options.model is None or options.model == Models.LINEAR_REGRESSION:
+        model = LinearRegressionModel([X_train, Y_train])
+    elif options.model == Models.MLP:
+        model = MLPRegressionModel([X_train, Y_train])
 
-    print("Sanity checking regression on trained example")
-    print("Predicted approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(approval_rating_prediction[0],
-                                                                                    approval_rating_prediction[1]))
-    print("Actual approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(label_sanity[0],
-                                                                                 label_sanity[1]))
 
-    k_fold_scores = cross_val_score(dev_corpus_regression_model.model, X, Y, n_jobs=-1, cv=4)
-    print(k_fold_scores)
-
-    # ------------------------ Plotting Results ----------------------------------------
-    actual_approval = []
-    actual_disapproval = []
-    predict_approval = []
-    predict_disapproval = []
-    axis_vals = []
+    if options.load is not None:
+        model.load(options.load)
+    else:
+        model.train()
+    if options.save:
+        model.save("TEMP_MODEL_" + str(datetime.datetime.now()))
     
-    for label in Y_test:
-        actual_approval.append(label[0])
-        actual_disapproval.append(label[1])
-
-    for i in range(len(X_test)):
-        print("Predicting day " + str(i) + " given: " + str(X_test[i]))
-        prediction = dev_corpus_regression_model.predict(X_test[i])
-        print("Output: " + str(prediction))
-        predict_approval.append(prediction[0][0])
-        predict_disapproval.append(prediction[0][1])
-        axis_vals.append(i)
+    if options.evaluate:
         
 
-    plt.figure(1)
-    print("RED VALUES ARE ACTUAL - BLUE VALUES ARE PREDICTED") # just a nice console reminder
-    # red is actual, blue is predicted
-    plt.subplot(211)
-    approval_actual, = plt.plot(axis_vals, actual_approval, 'ro')
-    approval_predicted, = plt.plot(axis_vals, predict_approval, 'bo')
-    plt.legend([approval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
-    plt.ylabel('Approval percentage')
+        input_sanity = X_train[0]
+        label_sanity = Y_train[0]
+        approval_rating_prediction = dev_corpus_regression_model.predict([input_sanity])[0]
+        print(approval_rating_prediction)
 
-    plt.subplot(212)
-    disapproval_actual, = plt.plot(axis_vals, actual_disapproval, 'ro')
-    disapproval_predicted, = plt.plot(axis_vals, predict_disapproval, 'bo')
-    plt.legend([disapproval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
-    plt.ylabel('Disapproval percentage')
-    plt.show()
+        print("Sanity checking regression on trained example")
+        print("Predicted approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(approval_rating_prediction[0], approval_rating_prediction[1]))
+        print("Actual approval ratings:\n\tApprove: {0}%\n\tDisapprove: {1}%".format(label_sanity[0], label_sanity[1]))
+
+        k_fold_scores = cross_val_score(dev_corpus_regression_model.model, X, Y, n_jobs=-1, cv=4)
+        print(k_fold_scores)
+
+    # ------------------------ Plotting Results ----------------------------------------
+    if options.plot:
+        actual_approval = []
+        actual_disapproval = []
+        predict_approval = []
+        predict_disapproval = []
+        axis_vals = []
+    
+        for label in Y_test:
+            actual_approval.append(label[0])
+            actual_disapproval.append(label[1])
+
+        for i in range(len(X_test)):
+            print("Predicting day " + str(i) + " given: " + str(X_test[i]))
+            prediction = dev_corpus_regression_model.predict(X_test[i])
+            print("Output: " + str(prediction))
+            predict_approval.append(prediction[0][0])
+            predict_disapproval.append(prediction[0][1])
+            axis_vals.append(i)
+        
+
+        plt.figure(1)
+        print("RED VALUES ARE ACTUAL - BLUE VALUES ARE PREDICTED") # just a nice console reminder
+    # red is actual, blue is predicted
+        plt.subplot(211)
+        approval_actual, = plt.plot(axis_vals, actual_approval, 'ro')
+        approval_predicted, = plt.plot(axis_vals, predict_approval, 'bo')
+        plt.legend([approval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
+        plt.ylabel('Approval percentage')
+
+        plt.subplot(212)
+        disapproval_actual, = plt.plot(axis_vals, actual_disapproval, 'ro')
+        disapproval_predicted, = plt.plot(axis_vals, predict_disapproval, 'bo')
+        plt.legend([disapproval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
+        plt.ylabel('Disapproval percentage')
+        plt.show()
