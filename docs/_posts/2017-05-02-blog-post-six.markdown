@@ -107,7 +107,7 @@ when we plotted approval ratings, we found that our model's predictions often we
 approval ratings for our test set of days (actual approval rating percentages are in red, predicted
 approval rating percentages are in blue):
 
-![Plot of predicted (dis)approval ratings vs. actual ratings for 8 different days](/images/Approval_Ratings_Linreg_1.png)
+![Plot of predicted (dis)approval ratings vs. actual ratings for 8 different days](/StateOfTheMedia/images/Approval_Ratings_Linreg_1.png)
 
 For several days - namely, days 2, 5, and 6 - the predicted approval ratings are actually very close to the
 actual approval ratings. The major outlier in our dataset is the 7th day in our test data, where our
@@ -123,7 +123,7 @@ predicted both approval and disapproval ratings separately, but we tried simplif
 our model's predictions of approval ratings vs. our test set, we found that our model was generally able to
 follow the same patterns/trends that the actual approval rating had:
 
-![Plot of prediction vs. actual approval ratings when model only predicts approval ratings](/images/Approval_Ratings_Linreg_2.png)
+![Plot of prediction vs. actual approval ratings when model only predicts approval ratings](/StateOfTheMedia/images/Approval_Ratings_Linreg_2.png)
 
 Again, our cross evaluation scores from `scikit-learn` showed no correlation between our model and the actual
 approval rating values.  Later on this week, we will be looking more carefully at what evaluation metrics are more appropriate for our model,
