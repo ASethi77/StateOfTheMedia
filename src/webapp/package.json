@@ -2,9 +2,11 @@
   "name": "state-of-the-media",
   "version": "1.0.0",
   "description": "Demo Webapp for State Of The Media presidential approval rating prediction tool",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prestart": "npm install",
+    "start": "http-server -a localhost -p 8000 -c-1 ./app",
+    "postinstall": "bower install"
   },
   "repository": {
     "type": "git",
@@ -22,5 +24,10 @@
   "bugs": {
     "url": "https://github.com/ASethi77/StateOfTheMedia/issues"
   },
-  "homepage": "https://github.com/ASethi77/StateOfTheMedia#readme"
+  "homepage": "https://github.com/ASethi77/StateOfTheMedia#readme",
+  "dependencies": {
+    "@types/angular": "^1.6.17",
+    "http-server": "^0.10.0",
+    "require": "^2.4.20"
+  }
 }

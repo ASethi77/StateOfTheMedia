@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"watch": true,
+		"types": [
+			"angular"
+		],
+		"module": "none"
+	},
+	
+	"files": [
+        "app/app.ts"
+    ]
+}

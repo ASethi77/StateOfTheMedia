@@ -1,0 +1,30 @@
+{
+  "name": "state-of-the-media",
+  "description": "Demo Webapp for State Of The Media presidential approval rating prediction tool",
+  "main": "index.js",
+  "authors": [
+    "asethi77"
+  ],
+  "license": "ISC",
+  "keywords": [
+    "president",
+    "approval",
+    "polls",
+    "prediction",
+    "nlp"
+  ],
+  "homepage": "https://github.com/ASethi77/StateOfTheMedia",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "angularjs#^1.6.4",
+    "bootstrap": "^3.3.7",
+    "requirejs": "^2.3.3"
+  }
+}

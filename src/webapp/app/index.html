@@ -1,0 +1,21 @@
+<html ng-app="StateOfTheMediaApp">
+    <head>
+        <script src="bower_components/requirejs/require.js"></script>
+        <script src="bower_components/jquery/dist/jquery.min.js"></script>
+        <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+    </head>
+
+    <body ng-controller="StateOfTheMediaController as MainController">
+        <div class="container">
+            <h1 class="text-center">Welcome to State Of The Media</h1>
+            <img ng-src="{{ MainController.currentExpression.imgPath }}"
+                alt="{{ MainController.currentExpression.expressionName }}"
+                ng-show="MainController.showExpression"
+                class="center-block img-responsive"
+                height="200" width="200"/>
+        </div>
+        <script src="bower_components/angular/angular.js" type="application/javascript"></script>
+        <script defer src="app.js"></script>
+    </body>
+</html>
