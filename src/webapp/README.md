@@ -20,4 +20,4 @@ Make sure you have `npm` set up on your machine.
 
 * AngularJS
 * Bootstrap
-* 
+* Chart.js
