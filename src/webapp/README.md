@@ -16,8 +16,19 @@ Make sure you have `npm` set up on your machine.
 3. Run `npm start`.
 4. Open a browser to `localhost:8000`.
 
+## Developing
+
+The main logic for the webapp is located within `app/app.ts`. This includes
+the Angular controller for managing articles and plot models.
+
+To work on this project, run `tsc` within the `src/webapp` directory,
+followed by `npm start`. After doing so, you should be able to modify
+`app/app.ts` and `app/index.html` and get updates as soon as you refresh
+your browser.
+
 ## Technologies used
 
 * AngularJS
 * Bootstrap
 * Chart.js
+* Typescript
