@@ -24,6 +24,7 @@ var StateOfTheMediaController = (function () {
         // <see https://github.com/tastejs/todomvc/blob/gh-pages/examples/typescript-angular/js/controllers/TodoCtrl.ts">
         this.$scope = null;
         this.$http = null;
+        this.articlesPerDay = {};
         this.possibleExpressions = {
             "Really Happy": new FacialExpression("Really Happy", "./img/ReallyHappy.jpg"),
             "Happy": new FacialExpression("Happy", "./img/Happy.jpg"),
@@ -33,8 +34,25 @@ var StateOfTheMediaController = (function () {
         this.currentExpression = null;
         this.showExpression = false;
         this.addArticle = function (content, date) {
-            console.log(content);
-            console.log(date);
+            var article = new Article(content, date);
+            var dateKey = date.toDateString();
+            var articleList;
+            if (dateKey in this.articlesPerDay) {
+                articleList = this.articlesPerDay[date.toDateString()];
+            }
+            else {
+                articleList = [];
+            }
+            articleList.push(article);
+            this.$http({
+                method: "POST",
+                data: articleList,
+                url: "/sentiments"
+            }).then(function success(response) {
+                console.log(response);
+            }, function error(response) {
+                console.log(response);
+            });
         };
         this.hideExpression = function () {
             this.showExpression = false;
@@ -52,11 +70,19 @@ var StateOfTheMediaController = (function () {
     }
     return StateOfTheMediaController;
 }());
-StateOfTheMediaController.AngularDependencies = ['$scope', '$http', '$injector', StateOfTheMediaController];
+StateOfTheMediaController.AngularDependencies = ['$scope', '$http', StateOfTheMediaController];
 StateOfTheMediaController.$inject = [
     '$scope',
-    '$http',
-    '$injector'
+    '$http'
 ];
-var app = angular.module('StateOfTheMediaApp', []);
+var app = angular.module('StateOfTheMediaApp', [
+    'ngMockE2E'
+]);
+app.run(['$httpBackend', function ($httpBackend) {
+        var sentiment = 25;
+        console.log("apprunner");
+        $httpBackend.whenPOST("/sentiments").respond(function (method, url, data) {
+            return [200, sentiment, {}];
+        });
+    }]);
 app.controller('StateOfTheMediaController', StateOfTheMediaController.AngularDependencies);

@@ -25,8 +25,15 @@
     "url": "https://github.com/ASethi77/StateOfTheMedia/issues"
   },
   "homepage": "https://github.com/ASethi77/StateOfTheMedia#readme",
+  "devDependencies": {
+    "angular-mocks": "^1.6.4",
+    "grunt": "^1.0.1",
+    "grunt-processhtml": "^0.4.1",
+    "typescript-collections": "^1.2.3"
+  },
   "dependencies": {
     "@types/angular": "^1.6.17",
+    "grunt-contrib-uglify": "^2.3.0",
     "http-server": "^0.10.0",
     "require": "^2.4.20"
   }
