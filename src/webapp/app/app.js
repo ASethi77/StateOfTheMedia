@@ -37,6 +37,10 @@ var StateOfTheMediaController = (function () {
         this.showExpression = true;
         this.topicLabels = [];
         this.topicStrengths = [];
+        this.dateFormattingOptions = {
+            year: "numeric", month: "short",
+            day: "numeric"
+        };
         this.addArticle = function (content, date) {
             var article = new Article(content, date);
             var dateKey = date.toDateString();

@@ -57,6 +57,11 @@ class StateOfTheMediaController {
     public topicLabels: string[] = [];
     public topicStrengths: number[] = [];
 
+    public dateFormattingOptions = {  
+        year: "numeric", month: "short",  
+        day: "numeric"
+    };  
+
     public addArticle = function (content: string, date: Date)
     {
         var article: Article = new Article(content, date);
