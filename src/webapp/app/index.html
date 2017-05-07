@@ -8,12 +8,35 @@
 
     <body ng-controller="StateOfTheMediaController as MainController">
         <div class="container">
-            <h1 class="text-center">Welcome to State Of The Media</h1>
-            <img ng-src="{{ MainController.currentExpression.imgPath }}"
-                alt="{{ MainController.currentExpression.expressionName }}"
-                ng-show="MainController.showExpression"
-                class="center-block img-responsive"
-                height="200" width="200"/>
+            <div class="row">
+                <h1 class="text-center">Welcome to State Of The Media</h1>
+            </div>
+            <div class="row">
+                <form>
+                    <div class="form-group">
+                        <label>
+                        Specify date article was published:
+                        <input type="date" ng-model="articleDate"></input>
+                        </label>
+                        <textarea name=""
+                                id="article-text"
+                                rows="10"
+                                class="form-control"
+                                placeholder="Paste the contents of a news article here"
+                                ng-model="articleContent"></textarea>
+                    </div>
+                    <button type="button"
+                            class="btn btn-success"
+                            ng-click="MainController.addArticle(articleContent, articleDate)">Submit</button>
+                </form>
+            </div>
+            <div class="row">
+                <img ng-src="{{ MainController.currentExpression.imgPath }}"
+                     alt="{{ MainController.currentExpression.expressionName }}"
+                     ng-show="MainController.showExpression"
+                     class="center-block img-responsive"
+                     height="200" width="200"/>
+            </div>
         </div>
         <script src="bower_components/angular/angular.js" type="application/javascript"></script>
         <script defer src="app.js"></script>

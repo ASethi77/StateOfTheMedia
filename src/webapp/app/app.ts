@@ -8,11 +8,35 @@ class FacialExpression {
     }
 }
 
-class StateOfTheMediaController {
-    static AngularDependencies = [ '$scope', StateOfTheMediaController ];
+class Article {
+    articleDate: Date;
+    articleText: string;
 
-    constructor($scope: ng.IScope) {
-        // do nothing yet
+    constructor(public text: string, public date: Date) {
+        this.articleText = text;
+        this.articleDate = date;
+    }
+}
+
+class StateOfTheMediaController {
+    static AngularDependencies = [ '$scope', '$http', '$injector', StateOfTheMediaController ];
+
+    public static $inject = [
+        '$scope',
+        '$http',
+        '$injector'
+    ];
+
+    // TODO: We shouldn't have to manually set AngularJS properties/modules
+    // as attributes of our instance ourselves; ideally they should be
+    // injected similar to the todomvc typescript + angular example on GH
+    // <see https://github.com/tastejs/todomvc/blob/gh-pages/examples/typescript-angular/js/controllers/TodoCtrl.ts">
+    public $scope: ng.IScope = null;
+    public $http: ng.IModule = null;
+
+    constructor($scope: ng.IScope, $http: ng.IModule) {
+        this.$scope = $scope;
+        this.$http = $http;
     }
 
     private possibleExpressions: { [name: string]: FacialExpression } = {
@@ -22,15 +46,21 @@ class StateOfTheMediaController {
         "Really Sad": new FacialExpression("Really Sad", "./img/ReallySad.jpg")
     };
 
-    public currentExpression: FacialExpression = this.possibleExpressions["Happy"];
-    public showExpression: boolean = true;
+    public currentExpression: FacialExpression = null;
+    public showExpression: boolean = false;
 
-    public hideExpression = function ()
+    public addArticle = function (content: string, date: Date)
+    {
+        console.log(content);
+        console.log(date);
+    };
+
+    private hideExpression = function ()
     {
         this.showExpression = false;
     };
 
-    public displayExpression = function ()
+    private displayExpression = function ()
     {
         this.showExpression = true;
     };
