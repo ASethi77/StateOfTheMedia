@@ -1,18 +1,18 @@
 # this class is used to turn an article into a feature vector by topic
 
-from util.topic_matchers import topic_labels, label_index
+from util.topic_matchers import hand_selected_topic_labels as topic_labels, hand_selected_label_index as label_index
 from nltk.stem.lancaster import LancasterStemmer
 import textacy
 
-def topic_vectorize(text):
-    count_result = __count_signal_words(__pre_process_text(text))
+def manual_topic_vectorize(text):
+    count_result = manual_count_signal_words(__pre_process_text(text))
     output_vector = count_result[0]
     num_signals = count_result[1]
-    __normalize(output_vector, num_signals)
+    _normalize(output_vector, num_signals)
     return output_vector
 
-def one_hot_topic_vectorize(text):
-    count_result = __count_signal_words(__pre_process_text(text))
+def manual_one_hot_topic_vectorize(text):
+    count_result = _count_signal_words(__pre_process_text(text))
     output_vector = count_result[0]
     num_signals = count_result[1]
     max_indx = __max_indx(output_vector)
@@ -29,7 +29,7 @@ def __pre_process_text(text):
     return text.split()
 
 # returns a tuple of the non-normalized vector and the total count of signal words
-def __count_signal_words(words, count_stems=True):
+def manual_count_signal_words(words, count_stems=True):
     output = [0.0] * len(label_index.keys())
 
     topic_keywords = topic_labels.keys()
@@ -77,7 +77,7 @@ def __max_indx(vector):
     return max_indx
 
 # returns the normalized vector based on the given total # of values
-def __normalize(vector, total):
+def _normalize(vector, total):
     if total < 1.0:
         return [0.0] * len(vector)
     for indx in range(len(vector)):

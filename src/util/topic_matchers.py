@@ -1,7 +1,7 @@
 # this file is a holder for signal words - topic conversion
 # for now, we hard-code values
 
-topic_labels = {
+hand_selected_topic_labels = {
 	# world_leaders
 	'obama': 'world_leaders',
 	'putin': 'world_leaders',
@@ -221,7 +221,7 @@ topic_labels = {
 	'recycle': 'environment'
 }
 
-label_index = {
+hand_selected_label_index = {
 	'world_leaders': 0,
 	'countries': 1,
 	'politics': 2,
