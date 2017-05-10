@@ -8,7 +8,7 @@ import numpy as np
 import time
 from datetime import timedelta
 from optparse import OptionParser
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, train_test_split
 import textacy
 from multiprocessing.dummy import Pool as ThreadPool 
 
@@ -16,13 +16,14 @@ import model
 import model.feature_util
 import model.sentiment_analysis
 import model.topic_extractor
+import math
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from model.linear_regression_model import LinearRegressionModel
 from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
 from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
-from util.config import Config, RegressionModels
+from util.config import Config, Models, Paths, RegressionModels
 from preprocess_text.document import Document
 
 current_milli_time = lambda: int(round(time.time() * 1000))
@@ -148,47 +149,57 @@ if __name__ == '__main__':
     print("Number of days of data: " + str(len(features_by_day.items())))
     features_by_range = combine_day_ranges(features_by_day)
     X, Y = match_features_to_labels(features_by_range, approval_ratings)
-    print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X)))
-    
-    test_partition = int(Config.TRAINING_PARTITION.value / 100.0  * len(X)) # Use a percentage of data as validation set
-    X_train = X[:test_partition]
-    Y_train = Y[:test_partition]
 
-    X_test = X[test_partition:]
-    Y_test = Y[test_partition:]
-
+    print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X))) 
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=Config.TRAINING_PARTITION)
 
     # setup model and configurations
     model = None
-    print(options)
-    print(options.model_type)
-    print(Config.REGRESSION_MODEL.value)
-    if options.model_type == RegressionModels.LINEAR_REGRESSION.value \
-            or Config.REGRESSION_MODEL.value == RegressionModels.LINEAR_REGRESSION:
-        model = LinearRegressionModel([X_train, Y_train])
-    elif options.model_type == RegressionModels.MLP.value \
-            or Config.REGRESSION_MODEL.value == RegressionModels.MLP:
-        model = MLPRegressionModel([X_train, Y_train])
 
-    if options.load_file is not None:
-        model.load(options.load_file)
+    # train new model (only if no model is loaded)
+    if options.model_type is None or options.model_type == RegressionModels.LINEAR_REGRESSION:
+        if !options.evaluate:
+            model = LinearRegressionModel([X, Y]) # when not evaluating, use entire data
+        else:
+            model = LinearRegressionModel([X_train, Y_train])
+    elif options.model_type == RegressionModels.MLP:
+        if !options.evaluate:
+            model = MLPRegressionModel([X, Y]) # when not evaluating, use entire data
+        else:
+            model = MLPRegressionModel([X_train, Y_train])
+
+
+    model_name = None
+
+    if options.load is not None:
+        model.load(options.load)
+        model_name = options.load
     else:
         model.train()
     if options.save:
-        model.save("TEMP_MODEL_" + str(datetime.datetime.now()))
+        model_name = "TEMP_MODEL_" + str(datetime.datetime.now())
+        model.save(model_name)
     
     if options.evaluate:
+        '''
+        eval_file = open(Paths.EVAL_RESULTS_PATH + model_name + ".txt")
+        
+        for i in range(len(X_train)):
+            prediction = model.predict([X_train[i]])[0]
+        for i in range(len(X_test)):
+            prediction = model.predict([X_test[i]])[0]
+        '''
         input_sanity = X_train[0]
         label_sanity = Y_train[0]
         approval_rating_prediction = model.predict([input_sanity])[0]
         print(approval_rating_prediction)
 
-    print("Sanity checking regression on trained example")
-    print("Predicted approval ratings:\n\tApprove: {0}".format(approval_rating_prediction[0]))
-    print("Actual approval ratings:\n\tApprove: {0}%".format(label_sanity[0]))
+        print("Sanity checking regression on trained example")
+        print("Predicted approval ratings:\n\tApprove: {0}".format(approval_rating_prediction[0]))
+        print("Actual approval ratings:\n\tApprove: {0}%".format(label_sanity[0]))
 
-    k_fold_scores = cross_val_score(model.model, X, Y, n_jobs=-1, cv=4, scoring="neg_mean_squared_error")
-    print(k_fold_scores)
+        k_fold_scores = cross_val_score(model.model, X, Y, n_jobs=-1, cv=4, scoring="neg_mean_squared_error")
+        print(k_fold_scores)
 
     # ------------------------ Plotting Results ----------------------------------------
     actual_approval = []
