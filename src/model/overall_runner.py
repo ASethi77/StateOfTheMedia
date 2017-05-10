@@ -25,7 +25,7 @@ from model.linear_regression_model import LinearRegressionModel
 from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
 from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
-from util.config import Config, Models, Paths, RegressionModels
+from util.config import Config, Paths, RegressionModels
 from preprocess_text.document import Document
 
 current_milli_time = lambda: int(round(time.time() * 1000))
@@ -205,19 +205,19 @@ if __name__ == '__main__':
     X, Y = match_features_to_labels(features_by_range, approval_ratings)
 
     print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X))) 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=Config.TRAINING_PARTITION)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=Config.TRAINING_PARTITION.value)
 
     # setup model and configurations
     model = None
 
     # train new model (only if no model is loaded)
     if options.model_type is None or options.model_type == RegressionModels.LINEAR_REGRESSION:
-        if !options.evaluate:
+        if not options.evaluate:
             model = LinearRegressionModel([X, Y]) # when not evaluating, use entire data
         else:
             model = LinearRegressionModel([X_train, Y_train])
     elif options.model_type == RegressionModels.MLP:
-        if !options.evaluate:
+        if not options.evaluate:
             model = MLPRegressionModel([X, Y]) # when not evaluating, use entire data
         else:
             model = MLPRegressionModel([X_train, Y_train])
@@ -225,9 +225,9 @@ if __name__ == '__main__':
 
     model_name = None
 
-    if options.load is not None:
-        model.load(options.load)
-        model_name = options.load
+    if options.load_file is not None:
+        model.load(options.load_file)
+        model_name = options.load_file
     else:
         model.train()
     if options.save:
