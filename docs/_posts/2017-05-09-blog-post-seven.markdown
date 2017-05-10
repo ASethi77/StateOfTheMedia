@@ -1,14 +1,10 @@
 ---
 layout: post
-title: "Blog Post 6 - Advanced Model Update 1"
-date: 2017-04-25
+title: "Blog Post 7 - Advanced Model Update #1 (cont)"
+date: 2017-05-09
 description:
 image:        "http://placehold.it/400x200"
 ---
-
-# Blog Post 7 - Advanced Model Update #1 (cont)
-May 9th, 2017
-
 
 ## Summary of improvements over the past week:
 
