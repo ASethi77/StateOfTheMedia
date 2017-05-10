@@ -539,29 +539,29 @@ if __name__ == '__main__':
         eval_file.close()
 
     # ------------------------ Plotting Results ----------------------------------------
-    actual_approval = []
-    actual_disapproval = []
-    predict_approval = []
-    predict_disapproval = []
-    axis_vals = []
-    
-    for label in Y_test:
-        actual_approval.append(label[0])
-        actual_disapproval.append(label[1])
-
-    for i in range(len(X_test)):
-        prediction = model.predict(X_test[i])
-        if options.dump_predictions:
-            print("Predicting day " + str(i) + " given: " + str(X_test[i]))
-            print("Output: " + str(prediction))
-        predict_approval.append(prediction[0][0])
-        predict_disapproval.append(prediction[0][1])
-        if options.plot_results:
-            axis_vals.append(i)
-            plt.figure(1)
-
-    # red is actual, blue is predicted
     if options.plot_results:
+        actual_approval = []
+        actual_disapproval = []
+        predict_approval = []
+        predict_disapproval = []
+        axis_vals = []
+    
+        for label in Y_test:
+            actual_approval.append(label[0])
+            actual_disapproval.append(label[1])
+
+        for i in range(len(X_test)):
+            prediction = model.predict(X_test[i])
+            if options.dump_predictions:
+                print("Predicting day " + str(i) + " given: " + str(X_test[i]))
+                print("Output: " + str(prediction))
+            predict_approval.append(prediction[0][0])
+            predict_disapproval.append(prediction[0][1])
+            if options.plot_results:
+                axis_vals.append(i)
+                plt.figure(1)
+
+        # red is actual, blue is predicted
         print("RED VALUES ARE ACTUAL - BLUE VALUES ARE PREDICTED") # just a nice console reminder
         plt.subplot(211)
         approval_actual, = plt.plot(axis_vals, actual_approval, 'ro')
@@ -576,7 +576,7 @@ if __name__ == '__main__':
         plt.legend([disapproval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
         plt.ylabel('Disapproval percentage')
 
-        # plt.show()
+        plt.show()
         config_params = [
             "CORPUS_NAME",
             "POLL_DELAY",
