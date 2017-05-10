@@ -19,7 +19,9 @@ class LabelLoader(object):
             data = json.load(data_file)
      	
         for president in data:
+            print(president['surname'])
             if president_surname == None or president['surname'] == president_surname:
+                print("found approval ratings for president {}".format(president_surname))
                 for term in president['terms']:
                      for rating in term['ratings']:
                          start = rating['pollingStart'].split("-")

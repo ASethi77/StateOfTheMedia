@@ -5,7 +5,9 @@ import warnings
 warnings.warn = warn
 
 import numpy as np
+import os
 import time
+import pickle
 from datetime import timedelta
 from optparse import OptionParser
 from sklearn.model_selection import cross_val_score
@@ -40,25 +42,62 @@ def doc_to_text(doc, max_sentences=-1):
     return sentences
 
 def corpus_to_day_features(date, corpus_for_day, output):
+    topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.TOPIC_EXTRACTION_METHOD.value.name])
+    sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.SENTIMENT_ANALYSIS_METHOD.value.name])
+
+    topic_extraction_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR.value, topic_extraction_cache_filename)
+    sentiment_analysis_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR.value, sentiment_analysis_cache_filename)
+
+    topics_precomputed = os.path.exists(topic_extraction_cache_filename)
+    sentiments_precomputed = os.path.exists(sentiment_analysis_cache_filename)
+
     print("processing day {0} with {1} articles".format(date, len(corpus_for_day)))
     day_feature_vector = [0.0] * (Config.NUM_TOPICS.value + 1) # features are topic labels plus sentiment value
-    doc_num = 0
+    day_sentiments = 0
+    day_topics = [0.0] * (Config.NUM_TOPICS.value)
+
+    if topics_precomputed:
+        day_topics = pickle.load(open(topic_extraction_cache_filename, "rb"))
+
+    if sentiments_precomputed:
+        day_sentiments = pickle.load(open(sentiment_analysis_cache_filename, "rb"))
+
     t0_day = current_milli_time() 
-    for doc in corpus_for_day:
-        t0_doc = current_milli_time()
-        doc_num += 1
-        doc_topic = Config.TOPIC_EXTRACTION_METHOD.value.value(doc_to_text(doc, max_sentences=3))
-        doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value.value(doc)
-        for indx in range(len(doc_topic)):
-            day_feature_vector[indx] += doc_topic[indx]
-        t1_doc = current_milli_time()
-        print("\tprocessing doc {0} took {1} milliseconds".format(doc_num, t1_doc - t0_doc))
-        day_feature_vector[-1] += doc_sentiment
-    for i in range(len(day_feature_vector)):
-        day_feature_vector[i] = day_feature_vector[i] / len(corpus_for_day) # normalize our features
+    if not topics_precomputed or not sentiments_precomputed:
+        doc_num = 0
+        for doc in corpus_for_day:
+            t0_doc = current_milli_time()
+            doc_num += 1
+            
+            if not topics_precomputed:
+                doc_topic = Config.TOPIC_EXTRACTION_METHOD.value.value(doc_to_text(doc, max_sentences=3))
+                for indx in range(len(doc_topic)):
+                    day_topics[indx] += doc_topic[indx]
+
+            if not sentiments_precomputed:
+                doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value.value(doc)
+                day_sentiments += doc_sentiment
+
+            t1_doc = current_milli_time()
+            print("\tprocessing doc {0} took {1} milliseconds".format(doc_num, t1_doc - t0_doc))
+
+    if not topics_precomputed:
+        for i in range(len(day_topics)):
+            day_topics[i] = day_topics[i] / len(corpus_for_day) # normalize our features
+
+    if not sentiments_precomputed:
+        day_sentiments /= float(len(corpus_for_day))
+
     t1_day = current_milli_time()
-    print("\tprocessing day {0} took {1} milliseconds".format(date, t1_day - t0_day))
-    output[date] = day_feature_vector
+    print("processing day {0} took {1} milliseconds".format(date, t1_day - t0_day))
+    output[date] = day_topics + [ day_sentiments ]
+   
+    if not topics_precomputed: 
+        pickle.dump(day_topics, open(topic_extraction_cache_filename, "wb"))
+
+    if not sentiments_precomputed:
+        pickle.dump(day_sentiments, open(sentiment_analysis_cache_filename, "wb"))
+
 
 # run topic extraction/sentiment analysis on the corpora
 # to build feature vectors per day
@@ -80,7 +119,12 @@ def init_corpora():
     print("Loading corpus of political articles...")
     num_articles = 100
     corpus_name = Config.CORPUS_NAME.value
-    article_corpora = load_corpora(corpus_name, "/opt/nlp_shared/corpora/{}/".format(Config.CORPUS_SUBDIR.value))
+    article_corpora = load_corpora(corpus_name, "/opt/nlp_shared/corpora/{}/".format(Config.CORPUS_SUBDIR.value), Config.CORPUS_YEARS.value)
+    print(len(article_corpora))
+    print()
+    print()
+    print()
+    print()
     print("done.")
     
     return (approval_ratings, article_corpora)
@@ -122,10 +166,19 @@ def match_features_to_labels(features_by_range, approval_ratings):
         Y = []
         # match up inputs (range features) w/ output label
         for date, features in features_by_range.items():
-            approval_label = approval_ratings.get(date + timedelta(days=Config.POLL_DELAY.value)) # approval label should be 'poll_lag' days into the future
+            #approval_label = approval_ratings.get("hello from the other side") # approval label should be 'poll_lag' days into the future
+            actual_date = date + timedelta(days=Config.POLL_DELAY.value)
+            approval_label = approval_ratings.get(actual_date.date()) # approval label should be 'poll_lag' days into the future
+            for rating in approval_ratings.keys():
+                print(str(rating))
+            print(type(rating))
+            print(type(actual_date.date()))
+            print("approval label for day {} is {}".format(str(actual_date), approval_label))
             if approval_label is not None:
                 X.append(features)
                 Y.append(approval_label[:-1])  # remove count of number of polls contributing to daily rating
+            else:
+                print("UNABLE TO FIND APPROVAL RATINGS FOR DAY {}".format(str(actual_date.date())))
         return (X, Y)
 
 
@@ -143,7 +196,8 @@ if __name__ == '__main__':
  
     # load various corpora and labels  
     approval_ratings, political_article_corpora = init_corpora() 
- 
+
+    print(len(political_article_corpora.keys())) 
     features_by_day = corpora_to_day_features(political_article_corpora)
     print("Number of days of data: " + str(len(features_by_day.items())))
     features_by_range = combine_day_ranges(features_by_day)
@@ -228,5 +282,16 @@ if __name__ == '__main__':
         plt.legend([disapproval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
         plt.ylabel('Disapproval percentage')
 
-        plt.show()
-        
+        # plt.show()
+        config_params = [
+            "CORPUS_NAME",
+            "POLL_DELAY",
+            "DAY_RANGE",
+            "SENTIMENT_ANALYSIS_METHOD",
+            "TOPIC_EXTRACTION_METHOD",
+            "NUM_TOPICS",
+            "REGRESSION_MODEL",
+            "NUM_LAYERS"
+        ]
+        plt.savefig(os.path.join(Config.PLOT_DIR.value, (Config.dump_config(config_params) + ".png")))
+        pickle.dump(k_fold_scores, open(os.path.join(Config.PLOT_DIR.value, Config.dump_config(config_params) + "_k_fold_scores_negmse.txt"), "wb"))

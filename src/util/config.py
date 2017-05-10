@@ -39,8 +39,13 @@ class TopicExtractionMethod(Enum):
 class Config(Enum):
     # General model testing params
     # ----------------------------------------------
-    CORPUS_NAME = "WebHoseDevCorpus"
-    CORPUS_SUBDIR = "WebhosePoliticalNewsCorpora"
+    CORPUS_NAME = "NYTCorpus"
+    CORPUS_SUBDIR = "NytCorpora"
+    #CORPUS_NAME = "WebHoseDevCorpus"
+    #CORPUS_SUBDIR = "WebhosePoliticalNewsCorpora"
+    PLOT_DIR = "/opt/nlp_shared/plot/"
+    CORPUS_YEARS = [1998, 2002]
+    #CORPUS_YEARS = []
 
     # Feature computation configuration params
     # ----------------------------------------------
@@ -49,6 +54,8 @@ class Config(Enum):
     SENTIMENT_ANALYSIS_METHOD = SentimentAnalysisMethod.MPQA
     TOPIC_EXTRACTION_METHOD = TopicExtractionMethod.MANUAL_TOPIC_EXTRACTION_MIXTURE
     NUM_TOPICS = len(hand_selected_label_index.keys())
+
+    FEATURE_CACHE_DIR = "/opt/nlp_shared/analysis_cache/"
 
     # Regression model selection configuration params
     # -----------------------------------------------
@@ -62,5 +69,8 @@ class Config(Enum):
     # -----------------------------------------------
     TRAINING_PARTITION = 35 # percent of data to use for training
 
-    def dump_config():
-        return '_'.join("{}={}".format(config_item.name, str(config_item.value)) for config_item in Config)
+    def dump_config(items=[]):
+        if len(items) == 0:
+            for config_item in Config:
+                items.append(config_item.name)
+        return '_'.join("{}={}".format(config_item.name, str(config_item.value)) for config_item in Config if config_item.name in items)
