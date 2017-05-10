@@ -69,6 +69,7 @@ class Config(Enum):
     THIRD_CUTOFF = 0.10
     FOURTH_CUTOFF = 0.20
     FIFTH_CUTOFF = 0.30
+    LENIENCY = 0.02 # this is how much above or below the actual label do we allow before considering something an over/under estimate
 
     def dump_config():
         return '_'.join("{}={}".format(config_item.name, str(config_item.value)) for config_item in Config)

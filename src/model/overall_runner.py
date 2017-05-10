@@ -129,6 +129,11 @@ def match_features_to_labels(features_by_range, approval_ratings):
                 Y.append(approval_label[:-1])  # remove count of number of polls contributing to daily rating
         return (X, Y)
 
+# print the given message to console
+# and write it to file
+def pw(output_file, message):
+    output_file.write(message + "\n")
+    print(message)
 
 if __name__ == '__main__':
     # add command-line flags
@@ -181,25 +186,298 @@ if __name__ == '__main__':
         model.save(model_name)
     
     if options.evaluate:
-        '''
         eval_file = open(Paths.EVAL_RESULTS_PATH + model_name + ".txt")
-        
+        pw(eval_file, "BEGIN MODEL ANALYSIS FOR: " + model_name + " of type " + options.model_type)
+        pw(eval_file, "================================================")
+        pw(eval_file, "")
+        pw(eval_file, "")
+        pw(eval_file, "")
+
+        MSE_approval = 0.0
+        MSE_disapproval = 0.0
+
+        total_diff_approval = 0.0
+        total_diff_disapproval = 0.0
+
+        first_approval_group_count = 0
+        second_approval_group_count = 0
+        third_approval_group_count = 0
+        fourth_approval_group_count = 0
+        fifth_approval_group_count = 0
+
+        first_disapproval_group_count = 0
+        second_disapproval_group_count = 0
+        third_disapproval_group_count = 0
+        fourth_disapproval_group_count = 0
+        fifth_disapproval_group_count = 0
+
+        approval_over_count = 0
+        approval_under_count = 0
+        disapproval_over_count = 0
+        disapproval_under_count = 0
+
+        # keep track of outliers: tuples of the form (feature_vector, label, prediction)
+        approval_outliers = []
+        disapproval_outliers = []
+
         for i in range(len(X_train)):
             prediction = model.predict([X_train[i]])[0]
+            diff_approval_signed = prediction[0] - Y_train[i][0]
+            diff_disapproval_signed = prediction[1] - Y_train[i][1]
+            diff_approval = math.fabs(diff_approval_signed)
+            diff_disapproval = math.fabs(diff_disapproval_signed)
+
+            percent_diff_approval_signed = diff_approval / Y_train[i][0]
+            percent_diff_disapproval_signed = diff_disapproval / Y_train[i][1]
+            percent_diff_approval = math.fabs(percent_diff_approval_signed)
+            percent_diff_disapproval_signed = math.fabs(percent_diff_disapproval_signed)
+
+            MSE_approval += math.pow(diff_approval, 2)
+            MSE_disapproval += math.pow(diff_disapproval, 2)
+
+            total_diff_approval += diff_approval
+            total_diff_disapproval += diff_disapproval
+
+            # count which 'percentiile' results fall in
+            if percent_diff_approval < Config.FIRST_CUTOFF:
+                first_approval_group_count += 1
+            if percent_diff_approval < Config.SECOND_CUTOFF:
+                second_approval_group_count += 1
+            if percent_diff_approval < Config.THIRD_CUTOFF:
+                third_approval_group_count += 1
+            if percent_diff_approval < Config.FOURTH_CUTOFF:
+                fourth_approval_group_count += 1
+            if percent_diff_approval < Config.FIFTH_CUTOFF:
+                fifth_approval_group_count += 1
+ 
+            # count which 'percentiile' results fall in
+            if percent_diff_disapproval < Config.FIRST_CUTOFF:
+                first_disapproval_group_count += 1
+            if percent_diff_disapproval < Config.SECOND_CUTOFF:
+                second_disapproval_group_count += 1
+            if percent_diff_disapproval < Config.THIRD_CUTOFF:
+                third_disapproval_group_count += 1
+            if percent_diff_disapproval < Config.FOURTH_CUTOFF:
+                fourth_disapproval_group_count += 1
+            if percent_diff_disapproval < Config.FIFTH_CUTOFF:
+                fifth_disapproval_group_count += 1 
+
+            # count over/understimates
+            if diff_approval > Config.LENIENCY:
+                if diff_approval_signed > 0:
+                    approval_over_count += 1
+                else:
+                    approval_under_count += 1
+            if diff_disapproval > Config.LENIENCY:
+                if diff_disapproval_signed > 0:
+                    disapproval_over_count += 1
+                else:
+                    disapproval_under_count += 1
+                
+          
+            # handle outliers
+            if diff_approval >= Config.OUTLIER_THRESHOLD_HARD:
+                approval_outliers.append((X_train[i], Y_train[i], prediction[0]))
+            if diff_disapproval >= Config.OUTLIER_THRESHOLD_HARD:
+                disapproval_outliers.append((X_train[i], Y_train[i], prediction[1]))
+
+            
+            #TODO: Check trend matching (does the directionality/magnitude change correlate with the actual labels)
+            # This might be difficult given random partitioning
+        
+        RMSE_approval = math.sqrt(MSE_approval / len(Y_train))
+        RMSE_disapproval = math.sqrt(MSE_disapproval / len(Y_train))
+
+        avg_diff_approval = total_diff_approval / len(Y_train)
+        avg_diff_disapproval = total_diff_disapproval / len(Y_train)
+
+        # print out results:
+        pw(eval_file, "Evaluation results on {} points of Training Data\n".format(len(X_train))) 
+        pw("==================================================")
+        pw(eval_file, "Root Mean Squared Error (Approval): " + str(RMSE_approval))
+        pw(eval_file, "Root Mean Squared Error (Disapproval): " + str(RMSE_disapproval))
+        pw(eval_file, "")
+        pw(eval_file, "Average distance (Approval): " + str(avg_diff_approval))
+        pw(eval_file, "Average distance (Disapproval): " + str(avg_diff_disapproval))
+        pw(eval_file, "")
+        pw(eval_file, "# of approval data points within " + str(Config.FIRST_CUTOFF) + "% of actual: " + first_approval_group_count)               
+        pw(eval_file, "# of approval data points within " + str(Config.SECOND_CUTOFF) + "% of actual: " + second_approval_group_count)
+        pw(eval_file, "# of approval data points within " + str(Config.THIRD_CUTOFF) + "% of actual: " + third_approval_group_count)
+        pw(eval_file, "# of approval data points within " + str(Config.FOURTH_CUTOFF) + "% of actual: " + fourth_approval_group_count)
+        pw(eval_file, "# of approval data points within " + str(Config.FIFTH_CUTOFF) + "% of actual: " + fifth_approval_group_count)
+        pw(eval_file, "")
+        pw(eval_file, "# of disapproval data points within " + str(Config.FIRST_CUTOFF) + "% of actual: " + first_disapproval_group_count)               
+        pw(eval_file, "# of disapproval data points within " + str(Config.SECOND_CUTOFF) + "% of actual: " + second_disapproval_group_count)
+        pw(eval_file, "# of disapproval data points within " + str(Config.THIRD_CUTOFF) + "% of actual: " + third_disapproval_group_count)
+        pw(eval_file, "# of disapproval data points within " + str(Config.FOURTH_CUTOFF) + "% of actual: " + fourth_disapproval_group_count)
+        pw(eval_file, "# of disapproval data points within " + str(Config.FIFTH_CUTOFF) + "% of actual: " + fifth_disapproval_group_count)
+        pw(eval_file, "")
+        pw(eval_file, "# of approval over-estimates: " + str(approval_over_count))
+        pw(eval_file, "# of approval under-estimates: " + str(approval_under_count))
+        pw(eval_file, "Ratio of over to under (Approval): " + str(approval_over_count * 1.0 / approval_under_count))
+        pw(eval_file, "# of disapproval over-estimates: " + str(disapproval_over_count))
+        pw(eval_file, "# of disapproval under-estimates: " + str(disapproval_under_count))
+        pw(eval_file, "Ratio of over to under (Disapproval): " + str(disapproval_over_count * 1.0 / disapproval_under_count))
+        pw(eval_file, "")
+        pw(eval_file, "# of Outliers (Approval): " + len(approval_outliers))
+        pw(eval_file, "---------------------------------------------------")
+        for i in range(len(approval_outliers)):
+            features, actual, predicted  = approval_outliers[i]
+            pw(eval_file, "Outlier " + str(i) + ": " + str(features) + " => " + str(predicted) + "(when actual is " + str(actual) + ")")
+        pw(eval_file, "")
+        pw(eval_file, "# of Outliers (Disapproval): " + len(approval_outliers))
+        pw(eval_file, "---------------------------------------------------")
+        for i in range(len(disapproval_outliers)):
+            features, actual, predicted  = disapproval_outliers[i]
+            pw(eval_file, "Outlier " + str(i) + ": " + str(features) + " => " + str(predicted) + "(when actual is " + str(actual) + ")")
+
+
+        MSE_approval = 0.0
+        MSE_disapproval = 0.0
+
+        total_diff_approval = 0.0
+        total_diff_disapproval = 0.0
+
+        first_approval_group_count = 0
+        second_approval_group_count = 0
+        third_approval_group_count = 0
+        fourth_approval_group_count = 0
+        fifth_approval_group_count = 0
+
+        first_disapproval_group_count = 0
+        second_disapproval_group_count = 0
+        third_disapproval_group_count = 0
+        fourth_disapproval_group_count = 0
+        fifth_disapproval_group_count = 0
+
+        approval_over_count = 0
+        approval_under_count = 0
+        disapproval_over_count = 0
+        disapproval_under_count = 0
+
+        # keep track of outliers: tuples of the form (feature_vector, label, prediction)
+        approval_outliers = []
+        disapproval_outliers = []
+
         for i in range(len(X_test)):
             prediction = model.predict([X_test[i]])[0]
-        '''
-        input_sanity = X_train[0]
-        label_sanity = Y_train[0]
-        approval_rating_prediction = model.predict([input_sanity])[0]
-        print(approval_rating_prediction)
+            diff_approval_signed = prediction[0] - Y_test[i][0]
+            diff_disapproval_signed = prediction[1] - Y_test[i][1]
+            diff_approval = math.fabs(diff_approval_signed)
+            diff_disapproval = math.fabs(diff_disapproval_signed)
 
-        print("Sanity checking regression on trained example")
-        print("Predicted approval ratings:\n\tApprove: {0}".format(approval_rating_prediction[0]))
-        print("Actual approval ratings:\n\tApprove: {0}%".format(label_sanity[0]))
+            percent_diff_approval_signed = diff_approval / Y_test[i][0]
+            percent_diff_disapproval_signed = diff_disapproval / Y_test[i][1]
+            percent_diff_approval = math.fabs(percent_diff_approval_signed)
+            percent_diff_disapproval_signed = math.fabs(percent_diff_disapproval_signed)
 
+            MSE_approval += math.pow(diff_approval, 2)
+            MSE_disapproval += math.pow(diff_disapproval, 2)
+
+            total_diff_approval += diff_approval
+            total_diff_disapproval += diff_disapproval
+
+            # count which 'percentiile' results fall in
+            if percent_diff_approval < Config.FIRST_CUTOFF:
+                first_approval_group_count += 1
+            if percent_diff_approval < Config.SECOND_CUTOFF:
+                second_approval_group_count += 1
+            if percent_diff_approval < Config.THIRD_CUTOFF:
+                third_approval_group_count += 1
+            if percent_diff_approval < Config.FOURTH_CUTOFF:
+                fourth_approval_group_count += 1
+            if percent_diff_approval < Config.FIFTH_CUTOFF:
+                fifth_approval_group_count += 1
+ 
+            # count which 'percentiile' results fall in
+            if percent_diff_disapproval < Config.FIRST_CUTOFF:
+                first_disapproval_group_count += 1
+            if percent_diff_disapproval < Config.SECOND_CUTOFF:
+                second_disapproval_group_count += 1
+            if percent_diff_disapproval < Config.THIRD_CUTOFF:
+                third_disapproval_group_count += 1
+            if percent_diff_disapproval < Config.FOURTH_CUTOFF:
+                fourth_disapproval_group_count += 1
+            if percent_diff_disapproval < Config.FIFTH_CUTOFF:
+                fifth_disapproval_group_count += 1 
+
+            # count over/understimates
+            if diff_approval > Config.LENIENCY:
+                if diff_approval_signed > 0:
+                    approval_over_count += 1
+                else:
+                    approval_under_count += 1
+            if diff_disapproval > Config.LENIENCY:
+                if diff_disapproval_signed > 0:
+                    disapproval_over_count += 1
+                else:
+                    disapproval_under_count += 1
+                
+          
+            # handle outliers
+            if diff_approval >= Config.OUTLIER_THRESHOLD_HARD:
+                approval_outliers.append((X_test[i], Y_test[i], prediction[0]))
+            if diff_disapproval >= Config.OUTLIER_THRESHOLD_HARD:
+                disapproval_outliers.append((X_test[i], Y_test[i], prediction[1]))
+
+            
+            #TODO: Check trend matching (does the directionality/magnitude change correlate with the actual labels)
+            # This might be difficult given random partitioning
+        
+        RMSE_approval = math.sqrt(MSE_approval / len(Y_test))
+        RMSE_disapproval = math.sqrt(MSE_disapproval / len(Y_test))
+
+        avg_diff_approval = total_diff_approval / len(Y_test)
+        avg_diff_disapproval = total_diff_disapproval / len(Y_test)
+
+        # print out results:
+        pw(eval_file, "Evaluation results on {} points of Test Data\n".format(len(X_test))) 
+        pw("==================================================")
+        pw(eval_file, "Root Mean Squared Error (Approval): " + str(RMSE_approval))
+        pw(eval_file, "Root Mean Squared Error (Disapproval): " + str(RMSE_disapproval))
+        pw(eval_file, "")
+        pw(eval_file, "Average distance (Approval): " + str(avg_diff_approval))
+        pw(eval_file, "Average distance (Disapproval): " + str(avg_diff_disapproval))
+        pw(eval_file, "")
+        pw(eval_file, "# of approval data points within " + str(Config.FIRST_CUTOFF) + "% of actual: " + first_approval_group_count)               
+        pw(eval_file, "# of approval data points within " + str(Config.SECOND_CUTOFF) + "% of actual: " + second_approval_group_count)
+        pw(eval_file, "# of approval data points within " + str(Config.THIRD_CUTOFF) + "% of actual: " + third_approval_group_count)
+        pw(eval_file, "# of approval data points within " + str(Config.FOURTH_CUTOFF) + "% of actual: " + fourth_approval_group_count)
+        pw(eval_file, "# of approval data points within " + str(Config.FIFTH_CUTOFF) + "% of actual: " + fifth_approval_group_count)
+        pw(eval_file, "")
+        pw(eval_file, "# of disapproval data points within " + str(Config.FIRST_CUTOFF) + "% of actual: " + first_disapproval_group_count)               
+        pw(eval_file, "# of disapproval data points within " + str(Config.SECOND_CUTOFF) + "% of actual: " + second_disapproval_group_count)
+        pw(eval_file, "# of disapproval data points within " + str(Config.THIRD_CUTOFF) + "% of actual: " + third_disapproval_group_count)
+        pw(eval_file, "# of disapproval data points within " + str(Config.FOURTH_CUTOFF) + "% of actual: " + fourth_disapproval_group_count)
+        pw(eval_file, "# of disapproval data points within " + str(Config.FIFTH_CUTOFF) + "% of actual: " + fifth_disapproval_group_count)
+        pw(eval_file, "")
+        pw(eval_file, "# of approval over-estimates: " + str(approval_over_count))
+        pw(eval_file, "# of approval under-estimates: " + str(approval_under_count))
+        pw(eval_file, "Ratio of over to under (Approval): " + str(approval_over_count * 1.0 / approval_under_count))
+        pw(eval_file, "# of disapproval over-estimates: " + str(disapproval_over_count))
+        pw(eval_file, "# of disapproval under-estimates: " + str(disapproval_under_count))
+        pw(eval_file, "Ratio of over to under (Disapproval): " + str(disapproval_over_count * 1.0 / disapproval_under_count))
+        pw(eval_file, "")
+        pw(eval_file, "# of Outliers (Approval): " + len(approval_outliers))
+        pw(eval_file, "---------------------------------------------------")
+        for i in range(len(approval_outliers)):
+            features, actual, predicted  = approval_outliers[i]
+            pw(eval_file, "Outlier " + str(i) + ": " + str(features) + " => " + str(predicted) + "(when actual is " + str(actual) + ")")
+        pw(eval_file, "")
+        pw(eval_file, "# of Outliers (Disapproval): " + len(approval_outliers))
+        pw(eval_file, "---------------------------------------------------")
+        for i in range(len(disapproval_outliers)):
+            features, actual, predicted  = disapproval_outliers[i]
+            pw(eval_file, "Outlier " + str(i) + ": " + str(features) + " => " + str(predicted) + "(when actual is " + str(actual) + ")")
+        
+        pw(eval_file, "")
+        pw(eval_file, "")
+        pw(eval_file, "========================================================")
+        pw(eval_file, "K-fold cross validation scores: ")
         k_fold_scores = cross_val_score(model.model, X, Y, n_jobs=-1, cv=4, scoring="neg_mean_squared_error")
-        print(k_fold_scores)
+        pw(eval_file, k_fold_scores)
+        
+        eval_file.close()
 
     # ------------------------ Plotting Results ----------------------------------------
     actual_approval = []
