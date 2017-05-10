@@ -22,7 +22,7 @@ def webhose_corpus_to_daily_bag_of_words(webhose_corpus):
 
     return freqs_per_day
 
-def get_approval_poll_data(president="Obama"):
+def get_approval_poll_data(president="Clinton"):
     from evaluation.load_labels import LabelLoader
     label_loader = LabelLoader()
     label_loader.load_json(president_surname=president)

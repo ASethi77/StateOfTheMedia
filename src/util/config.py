@@ -16,7 +16,7 @@ from model.topic_extractor import manual_topic_vectorize, manual_one_hot_topic_v
 from util.topic_matchers import hand_selected_topic_labels, hand_selected_label_index
 
 class Paths(Enum):
-	WORD_SENTIMENT_CORPUS_PATH = os.environ.get("WORD_SENTIMENT_PATH", "/opt/nlp_shared/data/subjectivity_lexicon/subjectivity_clues_hltemnlp05/subjclueslen1-HLTEMNLP05.tff")
+    WORD_SENTIMENT_CORPUS_PATH = os.environ.get("WORD_SENTIMENT_PATH", "/opt/nlp_shared/data/subjectivity_lexicon/subjectivity_clues_hltemnlp05/subjclueslen1-HLTEMNLP05.tff")
     EVAL_RESULTS_PATH = "../evaluation/results/"
 
 class RegressionModels(Enum):
@@ -40,8 +40,13 @@ class TopicExtractionMethod(Enum):
 class Config(Enum):
     # General model testing params
     # ----------------------------------------------
-    CORPUS_NAME = "WebHoseDevCorpus"
-    CORPUS_SUBDIR = "WebhosePoliticalNewsCorpora"
+    CORPUS_NAME = "NYTCorpus"
+    CORPUS_SUBDIR = "NytCorpora"
+    #CORPUS_NAME = "WebHoseDevCorpus"
+    #CORPUS_SUBDIR = "WebhosePoliticalNewsCorpora"
+    PLOT_DIR = "/opt/nlp_shared/plot/"
+    CORPUS_YEARS = [1998, 2002]
+    #CORPUS_YEARS = []
 
     # Feature computation configuration params
     # ----------------------------------------------
@@ -50,6 +55,8 @@ class Config(Enum):
     SENTIMENT_ANALYSIS_METHOD = SentimentAnalysisMethod.MPQA
     TOPIC_EXTRACTION_METHOD = TopicExtractionMethod.MANUAL_TOPIC_EXTRACTION_MIXTURE
     NUM_TOPICS = len(hand_selected_label_index.keys())
+
+    FEATURE_CACHE_DIR = "/opt/nlp_shared/analysis_cache/"
 
     # Regression model selection configuration params
     # -----------------------------------------------
@@ -71,5 +78,8 @@ class Config(Enum):
     FIFTH_CUTOFF = 0.30
     LENIENCY = 0.02 # this is how much above or below the actual label do we allow before considering something an over/under estimate
 
-    def dump_config():
-        return '_'.join("{}={}".format(config_item.name, str(config_item.value)) for config_item in Config)
+    def dump_config(items=[]):
+        if len(items) == 0:
+            for config_item in Config:
+                items.append(config_item.name)
+        return '_'.join("{}={}".format(config_item.name, str(config_item.value)) for config_item in Config if config_item.name in items)
