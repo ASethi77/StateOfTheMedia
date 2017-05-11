@@ -70,8 +70,19 @@ We’ve been using scikit-learn’s negative mean squared error function as our 
 
 
 ## New topic model: LDA/NMF
-Rather than using a hand-compiled set of topic words, we tried using LDA and NMF to generate topics and topic words for us. After running it over our political corpus from WebHose, we found that it did a pretty good job of grouping words for a while, but some of the topics it came up with were more scattered. We also found that there were some words present in all topics that were generated, such as “Mr.” Maybe after a bit of filtering we will be able to add the resulting topics/words into our topic model.
+Rather than using a hand-compiled set of topic words, we tried using LDA and NMF to generate topics and topic words for us. We believed this would give us a better sentiment analysis dictionary overall since each word returned by the LDA and NMF models are guaranteed to appear in some documents in our corpus. We trained both topic extraction models over all NYT articles from 1993-2001 (the Clinton administration) using 15 topics and 1000 input features.
 
+We found that the topics discovered through NMF seem to be much clearer than those discovered through LDA. Below is an example of one of the 15 topics we discovered through LDA:
+
+> city said new year state people million area drug car water official center building local mile national group plant mayor say york like project resident county park problem land food california...
+
+Compare this to an example of the topics we are able to get through NMF:
+
+> court judge case law justice federal supreme lawyers trial state legal ruling decision lawyer jury cases department rights police district criminal attorney evidence government charges states death ms investigation civil filed prison
+
+In general, we find that there are far more low-quality topics discovered through LDA for our use case, and for topics such as foreign-relations, the LDA model often identifies multiple topics which could all be construed to be the same overall topic, which is not as much of a problem with LDA.
+
+In either situation, however, the usage of the topics extracted through these methods require us to cherry-pick topics and keywords and put them in a more usable data format, which we have not had the time to do yet.
 
 ## New regressor: Multi-layered Perceptron
 It’s there. We implemented it, but haven’t run experiments with it yet.
