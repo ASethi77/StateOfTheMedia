@@ -45,7 +45,7 @@ class Config(Enum):
     #CORPUS_NAME = "WebHoseDevCorpus"
     #CORPUS_SUBDIR = "WebhosePoliticalNewsCorpora"
     PLOT_DIR = "/opt/nlp_shared/plot/"
-    CORPUS_YEARS = [1998, 2002]
+    CORPUS_YEARS = [1993, 1994]
     #CORPUS_YEARS = []
 
     # Feature computation configuration params
@@ -60,7 +60,7 @@ class Config(Enum):
 
     # Regression model selection configuration params
     # -----------------------------------------------
-    REGRESSION_MODEL = RegressionModels.LINEAR_REGRESSION
+    REGRESSION_MODEL = RegressionModels.MLP
 
     # Neural-net-specific configuration params
     # -----------------------------------------------

@@ -173,13 +173,13 @@ def match_features_to_labels(features_by_range, approval_ratings):
             for rating in approval_ratings.keys():
                 print(str(rating))
             print(type(rating))
-            print(type(actual_date.date()))
+            #print(type(actual_date.date()))
             print("approval label for day {} is {}".format(str(actual_date), approval_label))
             if approval_label is not None:
                 X.append(features)
                 Y.append(approval_label[:-1])  # remove count of number of polls contributing to daily rating
             else:
-                print("UNABLE TO FIND APPROVAL RATINGS FOR DAY {}".format(str(actual_date.date())))
+                pass #print("UNABLE TO FIND APPROVAL RATINGS FOR DAY {}".format(str(actual_date.date())))
         return (X, Y)
 
 
@@ -302,7 +302,8 @@ if __name__ == '__main__':
             "TOPIC_EXTRACTION_METHOD",
             "NUM_TOPICS",
             "REGRESSION_MODEL",
-            "NUM_LAYERS"
+            "NUM_LAYERS",
+            "YEARS"
         ]
         plt.savefig(os.path.join(Config.PLOT_DIR.value, (Config.dump_config(config_params) + ".png")))
         pickle.dump(k_fold_scores, open(os.path.join(Config.PLOT_DIR.value, Config.dump_config(config_params) + "_k_fold_scores_negmse.txt"), "wb"))
