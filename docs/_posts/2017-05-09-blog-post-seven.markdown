@@ -19,9 +19,36 @@ image:        "http://placehold.it/400x200"
 
 Since we’re technically in startup mode, it makes sense to build some kind of *product* around the NLP work that we’re doing. We decided on making a simple web-app that takes articles, and responds with a visualization of the resulting sentiment analysis and topic model:
 
+
+Here is our simple web app
+
+![Overall App](/StateOfTheMedia/images/app_overall1.png)
+
+It is run by our mascot Aakash! (He's very emotional and will react in kind to the kind of content that we feed our model)
+
+
 ![Sad Aakash](/StateOfTheMedia/images/Aakash_Happy.png)
 
 ![Happy Aakash](/StateOfTheMedia/images/Aakash_Sad.png)
+
+
+Here is an example given a very strong toned article about immigrants choosing to avoid access to federal food resources.
+
+![Immigrants Article](/StateOfTheMedia/images/app_article1.png)
+
+In this article many trigger words like "fear", "avoid", and "deportation" convey a very strong negative sentiment, while words such as "nutrition" and "services" probably align well as a social issue topic. Although we do not specifically look for entities in our model, actors like "US", "Donald Trump", and "Wic" would give strong political/foreign relations context. Overall this article is not as difficult to analyze because unlike most news articles it 1) has a very strong tone/bias in the negative direction and 2) contains highly specialized terms that our model can infer topical context from (as a whole news articles tend to be very neutral and may contain a wide ranging amount of noisy filler words). After adding the article to the set for the day, we see some results like below.
+
+![Immigrants Sentiment](/StateOfTheMedia/images/app_sentiment1.png)
+
+As you can see, the article tone is indicated as "Very Sad" and the strongest indicator is that of "Social Issues". Given more articles, the results will amalgamate the labels and create an overall impression for the day.
+
+Below is another example for a more upbeat/less politically charged "article" about the tech industry.
+
+![Tech Article](/StateOfTheMedia/images/app_article2.png)
+
+![Tech Sentiment](/StateOfTheMedia/images/app_sentiment2.png)
+
+![Tech Overall Page](/StateOfTheMedia/images/app_overall2.png)
 
 
 ## Performance improvements: Analysis Cache
