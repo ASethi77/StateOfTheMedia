@@ -22,33 +22,33 @@ Since we’re technically in startup mode, it makes sense to build some kind of 
 
 Here is our simple web app
 
-![Overall App](/StateOfTheMedia/images/app_overall1.png)
+![Overall App](http://i.imgur.com/VHbKZ0R.png)
 
 It is run by our mascot Aakash! (He's very emotional and will react in kind to the kind of content that we feed our model)
 
 
-![Sad Aakash](/StateOfTheMedia/images/Aakash_Happy.png)
+![Sad Aakash](http://i.imgur.com/h3lCGvP.png)
 
-![Happy Aakash](/StateOfTheMedia/images/Aakash_Sad.png)
+![Happy Aakash](http://i.imgur.com/j6E9wgv.png)
 
 
 Here is an example given a very strong toned article about immigrants choosing to avoid access to federal food resources.
 
-![Immigrants Article](/StateOfTheMedia/images/app_article1.png)
+![Immigrants Article](http://i.imgur.com/7wmkeRK.png)
 
 In this article many trigger words like "fear", "avoid", and "deportation" convey a very strong negative sentiment, while words such as "nutrition" and "services" probably align well as a social issue topic. Although we do not specifically look for entities in our model, actors like "US", "Donald Trump", and "Wic" would give strong political/foreign relations context. Overall this article is not as difficult to analyze because unlike most news articles it 1) has a very strong tone/bias in the negative direction and 2) contains highly specialized terms that our model can infer topical context from (as a whole news articles tend to be very neutral and may contain a wide ranging amount of noisy filler words). After adding the article to the set for the day, we see some results like below.
 
-![Immigrants Sentiment](/StateOfTheMedia/images/app_sentiment1.png)
+![Immigrants Sentiment](http://i.imgur.com/h3lCGvP.png)
 
 As you can see, the article tone is indicated as "Very Sad" and the strongest indicator is that of "Social Issues". Given more articles, the results will amalgamate the labels and create an overall impression for the day.
 
 Below is another example for a more upbeat/less politically charged "article" about the tech industry.
 
-![Tech Article](/StateOfTheMedia/images/app_article2.png)
+![Tech Article](http://i.imgur.com/tnP7fJG.png)
 
-![Tech Sentiment](/StateOfTheMedia/images/app_sentiment2.png)
+![Tech Sentiment](http://i.imgur.com/Wdgn7tr.png)
 
-![Tech Overall Page](/StateOfTheMedia/images/app_overall2.png)
+![Tech Overall Page](http://i.imgur.com/VHbKZ0R.png)
 
 
 ## Performance improvements: Analysis Cache
