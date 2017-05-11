@@ -15,7 +15,7 @@ image:        "http://placehold.it/400x200"
 5. Non-linear regression model
 
 
-## Demo: Aakash’s Face
+## Demo: Online sentiment analysis + topic extraction
 
 Since we’re technically in startup mode, it makes sense to build some kind of *product* around the NLP work that we’re doing. We decided on making a simple web-app that takes articles, and responds with a visualization of the resulting sentiment analysis and topic model:
 
@@ -27,6 +27,12 @@ Since we’re technically in startup mode, it makes sense to build some kind of 
 ## Performance improvements: Analysis Cache
 The process of loading in a corpus, generating topic/sentiment features, and training takes a long time. Generating topic/sentiment feature vectors takes particularly long, so we’ve implemented a cache system to store these features for a particular corpus, so we can instantly swap out regression models for experiments.
 
+This is also helpful for letting us test different hyperparameter configurations. So far, our model has
+two main hyperparameters:
+
+1. A delay between the day we read articles and the day we predict approval ratings for. We added this parameter because it is intuitively not likely that poll-based approval ratings for a president reflect new information published on the same day. So far, we have been testing our models with a "delay" of 1.
+
+2. A "window" over which we aggregate sentiments and topic feature vectors. Intuitively, it makes sense that approval ratings would reflect news over (at least) several days, not just the news articles from one day. To implement this, each day's feature/topic vector is the average over the last **n** days' raw feature/topic vectors (that is, before averaging). We have been testing our models with a "window" of 15 days including the current day.
 
 ## New evaluation function: Negative Mean Squared Error
 After noticing the discrepancy between our poor R^2 values and our plotted results from last week:
