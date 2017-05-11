@@ -17,7 +17,7 @@ from util.topic_matchers import hand_selected_topic_labels, hand_selected_label_
 
 class Paths(Enum):
     WORD_SENTIMENT_CORPUS_PATH = os.environ.get("WORD_SENTIMENT_PATH", "/opt/nlp_shared/data/subjectivity_lexicon/subjectivity_clues_hltemnlp05/subjclueslen1-HLTEMNLP05.tff")
-    EVAL_RESULTS_PATH = "../evaluation/results/"
+    EVAL_RESULTS_PATH = "./evaluation/results/"
 
 class RegressionModels(Enum):
     LINEAR_REGRESSION = "linear"
@@ -69,13 +69,14 @@ class Config(Enum):
     # Model evaluation configuration params
     # -----------------------------------------------
     TRAINING_PARTITION = 0.35 # fraction of data to use for testing
-    OUTLIER_THRESHOLD_HARD = 0.10 # percentage (as a decimal) of how much above or below the actual is considered an extreme outlier
+    OUTLIER_THRESHOLD_HARD = 15 # percentage (as a decimal) of how much above or below the actual is considered an extreme outlier
     OUTLIER_THRESHOLD_PERCENT = 0.25 # percentage (as a decimal) relative to the actual is considered an extreme outlier
     FIRST_CUTOFF = 0.02
     SECOND_CUTOFF = 0.05
     THIRD_CUTOFF = 0.10
     FOURTH_CUTOFF = 0.20
     FIFTH_CUTOFF = 0.30
+    LENIENCY = 2 # this is how much above or below the actual label do we allow before considering something an over/under estimate
 
     def dump_config(items=[]):
         if len(items) == 0:
