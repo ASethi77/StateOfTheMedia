@@ -2,6 +2,7 @@
 
 # This is the back-end REST api for making predictions about text
 # make a GET request to the following endpoints to receive JSON data
+
 # to populate the web-app.
 #
 # /model/predict
@@ -16,6 +17,8 @@ import pickle
 import model.overall_runner as Runner
 import model.sentiment_analysis as Sentiment
 import model.topic_extractor as Topic
+from model.linear_regression_model import LinearRegressionModel
+from model.MLPRegressionModel import MLPRegressionModel
 from util.config import Config, Paths, RegressionModels
 
 app = Flask(__name__)
