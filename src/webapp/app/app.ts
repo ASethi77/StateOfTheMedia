@@ -29,7 +29,7 @@ class StateOfTheMediaController {
     // TODO: We shouldn't have to manually set AngularJS properties/modules
     // as attributes of our instance ourselves; ideally they should be
     // injected similar to the todomvc typescript + angular example on GH
-    // <see https://github.com/tastejs/todomvc/blob/gh-pages/examples/typescript-angular/js/controllers/TodoCtrl.ts">
+    // <see https://github.com/tastejs/todomvc/blob/gh-pages/examples/typescript-angular/js/controllers/TodoCtrl.ts>
     public $scope: ng.IScope = null;
     public $http = null;
 
@@ -72,6 +72,7 @@ class StateOfTheMediaController {
             articleList = this.articlesPerDay[date.toDateString()];
         } else {
             articleList = [];
+            this.articlesPerDay[date.toDateString()] = articleList;
         }
         articleList.push(article);
 

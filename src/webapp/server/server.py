@@ -100,17 +100,17 @@ def get_predict():
     total_topics = [0.0]
     for text in data:
         doc_topics = Config.TOPIC_EXTRACTION_METHOD.value.value(text)
-	doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value.value(text)
-	total_sentiment = map(add, total_sentiment, doc_topics)
-	total_sentiment += doc_sentiment
+    doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value.value(text)
+    total_sentiment = map(add, total_sentiment, doc_topics)
+    total_sentiment += doc_sentiment
     for indx in range(len(total_sentiment)):
         total_sentiment[indx] = total_sentiment[indx] / len(data)
     total_sentiment = total_sentiment / len(data)
   
     if model is not None:
-	features = total_topics + total_sentiment
+        features = total_topics + total_sentiment
         output = model.predict(features)
-	return jsonify({'sentiment': total_sentiment, 'topicStrengths': total_topics, 'topicLabels': TOPIC_LABELS, 'approval': output[0][0]})
+    return jsonify({'sentiment': total_sentiment, 'topicStrengths': total_topics, 'topicLabels': TOPIC_LABELS, 'approval': output[0][0]})
     return jsonify({'error': 'No suitable model loaded'})
 
 if __name__ == '__main__':
