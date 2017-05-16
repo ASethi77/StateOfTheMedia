@@ -11,8 +11,15 @@
 #
 # RUN WITH: python3 ./server.py
 
-from flask import Flask, request
+# code to fix PYTHONPATH
+import sys
 import os
+PACKAGE_PARENT = '../..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
+from flask import Flask, request
+
 import pickle
 import model.overall_runner as Runner
 import model.sentiment_analysis as Sentiment
@@ -95,5 +102,5 @@ def get_predict():
     return jsonify({'error': 'No suitable model loaded'})
 
 if __name__ == '__main__':
-    init_server()
+    #init_server()
     app.run(debug=True)
