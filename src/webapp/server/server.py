@@ -27,6 +27,7 @@ import model.topic_extractor as Topic
 from model.linear_regression_model import LinearRegressionModel
 from model.MLPRegressionModel import MLPRegressionModel
 from util.config import Config, Paths, RegressionModels
+from operator import add
 
 app = Flask(__name__)
 
@@ -86,19 +87,30 @@ def get_topic():
     return jsonify({'topics': topics})
 
 # TODO: Should we move the calculation all to the server side?
-# expects a GET request attribute "topics" as an array of doubles
+# expects a GET request attribute "docs" which is an array of strings
 # and an attribute "sentiment" as a double
 # outputs {result: [...]} where the array indices correspond to approve, disapprove, neutral
-@app.route('/model/predict', methods=['GET'])
+@app.route('/model/predict', methods=['POST'])
 def get_predict():
-    topics = request.args.get('topics')
-    sentiment = request.args.get('sentiment')
-    features = []
-    features += topics
-    features.append(sentiment)
+    # TODO: use actual topic labels here
+    TOPIC_LABELS = ["A", "B", "C", "D", "E", "F"]
+    request_json = request.get_json()
+    data = json.loads(request_json)
+    total_sentiment = 0.0
+    total_topics = [0.0]
+    for text in data:
+        doc_topics = Config.TOPIC_EXTRACTION_METHOD.value.value(text)
+	doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value.value(text)
+	total_sentiment = map(add, total_sentiment, doc_topics)
+	total_sentiment += doc_sentiment
+    for indx in range(len(total_sentiment)):
+        total_sentiment[indx] = total_sentiment[indx] / len(data)
+    total_sentiment = total_sentiment / len(data)
+  
     if model is not None:
+	features = total_topics + total_sentiment
         output = model.predict(features)
-        return jsonify({'result': output})
+	return jsonify({'sentiment': total_sentiment, 'topicStrengths': total_topics, 'topicLabels': TOPIC_LABELS, 'approval': output[0][0]})
     return jsonify({'error': 'No suitable model loaded'})
 
 if __name__ == '__main__':
