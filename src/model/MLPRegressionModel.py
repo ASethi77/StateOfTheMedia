@@ -1,5 +1,4 @@
 from .regression_model import RegressionModel
-from sklearn.externals import joblib
 from sklearn.neural_network import MLPRegressor
 
 class MLPRegressionModel(RegressionModel):
@@ -18,9 +17,3 @@ class MLPRegressionModel(RegressionModel):
 
     def evaluate(self, x_in, y_out):
         return self.model.score(x_in, y_out)
-
-    def save(self, filename):
-        joblib.dump(self.model, filename)
-
-    def load(self, filename):
-        self.model = joblib.load(filename)
