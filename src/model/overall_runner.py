@@ -23,6 +23,7 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from model.linear_regression_model import LinearRegressionModel
+from model.regression_model import RegressionModel
 from model.MLPRegressionModel import MLPRegressionModel
 from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
@@ -235,7 +236,7 @@ if __name__ == '__main__':
     model_name = None
 
     if options.load_file is not None:
-        model.load(options.load_file)
+        model = RegressionModel.load(options.load_file)
         model_name = options.load_file
     else:
         model.train()

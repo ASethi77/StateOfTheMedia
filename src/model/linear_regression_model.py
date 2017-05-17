@@ -1,5 +1,4 @@
 from .regression_model import RegressionModel
-from sklearn.externals import joblib
 from sklearn.linear_model import LinearRegression
 
 class LinearRegressionModel(RegressionModel):
@@ -18,10 +17,4 @@ class LinearRegressionModel(RegressionModel):
 
 	def evaluate(self, x_in, y_out):
 		return self.model.score(x_in, y_out)
-
-	def save(self, filename):
-		joblib.dump(self.model, filename)
-
-	def load(self, filename):
-		self.model = joblib.load(filename)
 
