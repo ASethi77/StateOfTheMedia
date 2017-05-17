@@ -52,9 +52,10 @@ class Config():
     DAY_RANGE = 15 # how many days of articles we should compound into one feature vector
     SENTIMENT_ANALYSIS_METHOD = SentimentAnalysisMethod.MPQA
     TOPIC_EXTRACTION_METHOD = TopicExtractionMethod.MANUAL_TOPIC_EXTRACTION_MIXTURE
+    TOPIC_NAMES = list(hand_selected_label_index.keys())
     NUM_TOPICS = len(hand_selected_label_index.keys())
 
-    FEATURE_CACHE_DIR = "/opt/nlp_shared/analysis_cache/"
+    FEATURE_CACHE_DIR = os.environ.get("FEATURE_CACHE_DIR", "/opt/nlp_shared/analysis_cache/")
 
     # Regression model selection configuration params
     # -----------------------------------------------

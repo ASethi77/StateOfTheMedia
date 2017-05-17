@@ -29,7 +29,9 @@ from model.regression_model import RegressionModel
 # from model.MLPRegressionModel import MLPRegressionModel
 from util.config import Config #, Paths, RegressionModels
 from preprocess_text.document import Document
-
+from model.overall_runner import corpus_to_day_features
+from preprocess_text.corpus import Corpus
+import json
 from operator import add
 
 
@@ -40,6 +42,7 @@ topic_corpus = None
 model = None
 
 def init_server():
+    global model
     # '''topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.TOPIC_EXTRACTION_METHOD.value.name])
     # sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.SENTIMENT_ANALYSIS_METHOD.value.name])
     #
@@ -70,6 +73,13 @@ def init_server():
     model = LinearRegressionModel.load("/Users/johndowling/Documents/Drew/cse481N/StateOfTheMedia/data/TrainedModules/TEMP_MODEL_2017-05-16_18:05:38.043479")
 
 
+def sentiment(text):
+    sentiment_ratio = Config.SENTIMENT_ANALYSIS_METHOD.value.value(Document(content=text))
+    return {'sentiment': sentiment_ratio}
+
+def topics(text):
+    topics = Config.TOPIC_EXTRACTION_METHOD.value.value(text)
+    return {'topics': topics}
 
 # -------------End Points-------------------
 @app.route('/')
@@ -81,23 +91,41 @@ def index():
 @app.route('/model/sentiment', methods=['GET'])
 def get_sentiment():
     text = request.args.get('text')
-    print(text)
-    sentiment_ratio = Config.SENTIMENT_ANALYSIS_METHOD.value.value(Document(content=text))
-    return jsonify({'sentiment': sentiment_ratio})
+    return jsonify(sentiment(text))
 
 # expects a GET request attribute "text"
 # outputs {topic: [...]}
 @app.route('/model/topic', methods=['GET'])
 def get_topic():
     text = request.args.get('text')
-    topics = Config.TOPIC_EXTRACTION_METHOD.value.value(text)
-    return jsonify({'topics': topics})
+    return jsonify(topics(text))
 
 @app.route('/nlp', methods=['POST'])
 def do_nlp():
-    print("doing the nlp")
-    print(model)
-    return jsonify("")
+    global model
+
+    article_list = json.loads(request.data)
+    doc_list = []
+    date = None
+    for article in article_list:
+        doc_list.append(Document(article['text']))
+        date = article['date']
+
+    day_corpus = Corpus(docs=doc_list)
+    output = dict()
+    corpus_to_day_features(date, day_corpus, output)
+
+    x_in = None
+    for v in output.values():
+        x_in = v # only one value. this is dumb
+
+    prediction = model.predict(x_in)
+    response = dict()
+    response['sentiment'] = x_in[-1]
+    response['topicLabels'] = Config.TOPIC_NAMES
+    response['topicStrings'] = x_in[0:-1]
+    response['approval'] = prediction.tolist()
+    return jsonify(response)
 
 # TODO: Should we move the calculation all to the server side?
 # expects a GET request attribute "docs" which is an array of strings
