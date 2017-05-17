@@ -123,11 +123,6 @@ def init_corpora():
     num_articles = 100
     corpus_name = Config.CORPUS_NAME.value
     article_corpora = load_corpora(corpus_name, "/opt/nlp_shared/corpora/{}/".format(Config.CORPUS_SUBDIR.value), Config.CORPUS_YEARS.value)
-    print(len(article_corpora))
-    print()
-    print()
-    print()
-    print()
     print("done.")
     
     return (approval_ratings, article_corpora)
@@ -169,14 +164,8 @@ def match_features_to_labels(features_by_range, approval_ratings):
         Y = []
         # match up inputs (range features) w/ output label
         for date, features in features_by_range.items():
-            #approval_label = approval_ratings.get("hello from the other side") # approval label should be 'poll_lag' days into the future
             actual_date = date + timedelta(days=Config.POLL_DELAY.value)
             approval_label = approval_ratings.get(actual_date.date()) # approval label should be 'poll_lag' days into the future
-            for rating in approval_ratings.keys():
-                print(str(rating))
-            print(type(rating))
-            #print(type(actual_date.date()))
-            print("approval label for day {} is {}".format(str(actual_date), approval_label))
             if approval_label is not None:
                 X.append(features)
                 Y.append(approval_label[:-1])  # remove count of number of polls contributing to daily rating
@@ -340,7 +329,6 @@ if __name__ == '__main__':
             if diff_disapproval >= Config.OUTLIER_THRESHOLD_HARD.value:
                 disapproval_outliers.append((X_train[i], Y_train[i], prediction[1]))
 
-            
             #TODO: Check trend matching (does the directionality/magnitude change correlate with the actual labels)
             # This might be difficult given random partitioning
 
