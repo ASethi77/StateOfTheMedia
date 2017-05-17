@@ -1,38 +1,20 @@
 # adding this to suppress sklearn DeprecationWarnings...
+from model.linear_regression_model import LinearRegressionModel
+
+
 def warn(*args, **kwargs):
     pass
 import warnings
 warnings.warn = warn
 
-import numpy as np
-import os
 import time
-import pickle
-import datetime
-from datetime import timedelta
-from optparse import OptionParser
-from sklearn.model_selection import cross_val_score, train_test_split
-import textacy
-from multiprocessing.dummy import Pool as ThreadPool 
+from sklearn.model_selection import train_test_split
 
-import model
-import model.feature_util
-import model.sentiment_analysis
-import model.topic_extractor
-import math
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from model.linear_regression_model import LinearRegressionModel
-from model.MLPRegressionModel import MLPRegressionModel
-from preprocess_text.load_corpora import load_corpora
-from preprocess_text.setup_corpus import setup_corpus
-from util.config import Config, Paths, RegressionModels
-from preprocess_text.document import Document
+from util.config import Config
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
 
-from model.overall_runner import doc_to_text, corpus_to_day_features, corpora_to_day_features, \
+from model.overall_runner import corpora_to_day_features, \
                                  init_corpora, combine_day_ranges, match_features_to_labels
 
 current_milli_time = lambda: int(round(time.time() * 1000))
