@@ -26,11 +26,18 @@ def load_mpqa_sentiment_corpus(tff_path):
 			words.append(word.strip())
 	sentiment_per_word = {}
 	tff_entries = []
-	for word in words:
+	for index, word in enumerate(words):
 		attributes = [[kvpair for kvpair in word.split("=")] for word in word.split(" ")]
 		attributes_dict = {}
 		for attribute in attributes:
-			attributes_dict[attribute[0]] = attribute[1]
+			try:
+				attributes_dict[attribute[0]] = attribute[1]
+			except IndexError as e:
+				print(e)
+				print(index)
+				print(attribute)
+				print(attribute[0])
+				print(attribute[1])
 			tff_entries.append(attributes_dict)
 	for word_attrs in tff_entries:
 		word = word_attrs["word1"]

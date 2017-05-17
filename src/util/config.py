@@ -16,7 +16,7 @@ from model.topic_extractor import manual_topic_vectorize, manual_one_hot_topic_v
 from util.topic_matchers import hand_selected_topic_labels, hand_selected_label_index
 
 class Paths(Enum):
-    WORD_SENTIMENT_CORPUS_PATH = os.environ.get("WORD_SENTIMENT_PATH", "/opt/nlp_shared/data/subjectivity_lexicon/subjectivity_clues_hltemnlp05/subjclueslen1-HLTEMNLP05.tff")
+    WORD_SENTIMENT_CORPUS_PATH = os.environ.get("WORD_SENTIMENT_PATH", "/Users/johndowling/Documents/Drew/cse481N/subjectivity_clues_hltemnlp05/subjclueslen1-HLTEMNLP05.tff")
     EVAL_RESULTS_PATH = "./evaluation/results/"
 
 class RegressionModels(Enum):
@@ -25,8 +25,9 @@ class RegressionModels(Enum):
 
 class SentimentAnalysisMethod(Enum):
     # Sentiment analysis via MPQA lexicon
-    MPQA = partial(lambda doc: get_doc_sentiment_by_words(doc, load_mpqa_sentiment_corpus(Paths.WORD_SENTIMENT_CORPUS_PATH.value)))
-    
+    MPQA_LEXICON = load_mpqa_sentiment_corpus(Paths.WORD_SENTIMENT_CORPUS_PATH.value)
+    MPQA = partial(lambda doc: get_doc_sentiment_by_words(doc, SentimentAnalysisMethod.MPQA_LEXICON.value))
+
     def __str__(self):
         return self.name
 
