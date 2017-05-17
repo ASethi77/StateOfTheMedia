@@ -46,19 +46,19 @@ def doc_to_text(doc, max_sentences=-1):
     return sentences
 
 def corpus_to_day_features(date, corpus_for_day, output):
-    topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.TOPIC_EXTRACTION_METHOD.value.name])
-    sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.SENTIMENT_ANALYSIS_METHOD.value.name])
+    topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME, Config.TOPIC_EXTRACTION_METHOD.name])
+    sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME, Config.SENTIMENT_ANALYSIS_METHOD.name])
 
-    topic_extraction_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR.value, topic_extraction_cache_filename)
-    sentiment_analysis_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR.value, sentiment_analysis_cache_filename)
+    topic_extraction_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR, topic_extraction_cache_filename)
+    sentiment_analysis_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR, sentiment_analysis_cache_filename)
 
     topics_precomputed = os.path.exists(topic_extraction_cache_filename)
     sentiments_precomputed = os.path.exists(sentiment_analysis_cache_filename)
 
     print("processing day {0} with {1} articles".format(date, len(corpus_for_day)))
-    day_feature_vector = [0.0] * (Config.NUM_TOPICS.value + 1) # features are topic labels plus sentiment value
+    day_feature_vector = [0.0] * (Config.NUM_TOPICS + 1) # features are topic labels plus sentiment value
     day_sentiments = 0
-    day_topics = [0.0] * (Config.NUM_TOPICS.value)
+    day_topics = [0.0] * (Config.NUM_TOPICS)
 
     if topics_precomputed:
         day_topics = pickle.load(open(topic_extraction_cache_filename, "rb"))
@@ -74,12 +74,12 @@ def corpus_to_day_features(date, corpus_for_day, output):
             doc_num += 1
             
             if not topics_precomputed:
-                doc_topic = Config.TOPIC_EXTRACTION_METHOD.value.value(doc_to_text(doc, max_sentences=3))
+                doc_topic = Config.TOPIC_EXTRACTION_METHOD.value(doc_to_text(doc, max_sentences=3))
                 for indx in range(len(doc_topic)):
                     day_topics[indx] += doc_topic[indx]
 
             if not sentiments_precomputed:
-                doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value.value(doc)
+                doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value(doc)
                 day_sentiments += doc_sentiment
 
             t1_doc = current_milli_time()
@@ -122,8 +122,8 @@ def init_corpora():
 
     print("Loading corpus of political articles...")
     num_articles = 100
-    corpus_name = Config.CORPUS_NAME.value
-    article_corpora = load_corpora(corpus_name, "/opt/nlp_shared/corpora/{}/".format(Config.CORPUS_SUBDIR.value), Config.CORPUS_YEARS.value)
+    corpus_name = Config.CORPUS_NAME
+    article_corpora = load_corpora(corpus_name, "/opt/nlp_shared/corpora/{}/".format(Config.CORPUS_SUBDIR), Config.CORPUS_YEARS)
     print("done.")
     
     return (approval_ratings, article_corpora)
@@ -133,10 +133,10 @@ def init_corpora():
 def combine_day_ranges(features_by_day):
     output = {}
     for date, features in features_by_day.items():
-        range_features = [0.0] * (Config.NUM_TOPICS.value + 1)
+        range_features = [0.0] * (Config.NUM_TOPICS + 1)
         days_with_data = 0 # count how many days in this range actually provided us data
         # TODO: this might be biased since days with different # of articles are weighted the same
-        for i in range(0, Config.DAY_RANGE.value):
+        for i in range(0, Config.DAY_RANGE):
             days_away = timedelta(days=i)
             target_day = date - days_away
             curr_day_features = features_by_day.get(target_day)
@@ -165,7 +165,7 @@ def match_features_to_labels(features_by_range, approval_ratings):
         Y = []
         # match up inputs (range features) w/ output label
         for date, features in features_by_range.items():
-            actual_date = date + timedelta(days=Config.POLL_DELAY.value)
+            actual_date = date + timedelta(days=Config.POLL_DELAY)
             approval_label = approval_ratings.get(actual_date.date()) # approval label should be 'poll_lag' days into the future
             if approval_label is not None:
                 X.append(features)
@@ -202,7 +202,7 @@ if __name__ == '__main__':
     X, Y = match_features_to_labels(features_by_range, approval_ratings)
 
     print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X))) 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=Config.TRAINING_PARTITION.value)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=Config.TRAINING_PARTITION)
 
     # setup model and configurations
     model = None
@@ -288,36 +288,36 @@ if __name__ == '__main__':
             total_diff_disapproval += diff_disapproval
 
             # count which 'percentiile' results fall in
-            if percent_diff_approval < Config.FIRST_CUTOFF.value:
+            if percent_diff_approval < Config.FIRST_CUTOFF:
                 first_approval_group_count += 1
-            if percent_diff_approval < Config.SECOND_CUTOFF.value:
+            if percent_diff_approval < Config.SECOND_CUTOFF:
                 second_approval_group_count += 1
-            if percent_diff_approval < Config.THIRD_CUTOFF.value:
+            if percent_diff_approval < Config.THIRD_CUTOFF:
                 third_approval_group_count += 1
-            if percent_diff_approval < Config.FOURTH_CUTOFF.value:
+            if percent_diff_approval < Config.FOURTH_CUTOFF:
                 fourth_approval_group_count += 1
-            if percent_diff_approval < Config.FIFTH_CUTOFF.value:
+            if percent_diff_approval < Config.FIFTH_CUTOFF:
                 fifth_approval_group_count += 1
  
             # count which 'percentiile' results fall in
-            if percent_diff_disapproval < Config.FIRST_CUTOFF.value:
+            if percent_diff_disapproval < Config.FIRST_CUTOFF:
                 first_disapproval_group_count += 1
-            if percent_diff_disapproval < Config.SECOND_CUTOFF.value:
+            if percent_diff_disapproval < Config.SECOND_CUTOFF:
                 second_disapproval_group_count += 1
-            if percent_diff_disapproval < Config.THIRD_CUTOFF.value:
+            if percent_diff_disapproval < Config.THIRD_CUTOFF:
                 third_disapproval_group_count += 1
-            if percent_diff_disapproval < Config.FOURTH_CUTOFF.value:
+            if percent_diff_disapproval < Config.FOURTH_CUTOFF:
                 fourth_disapproval_group_count += 1
-            if percent_diff_disapproval < Config.FIFTH_CUTOFF.value:
+            if percent_diff_disapproval < Config.FIFTH_CUTOFF:
                 fifth_disapproval_group_count += 1 
 
             # count over/understimates
-            if diff_approval > Config.LENIENCY.value:
+            if diff_approval > Config.LENIENCY:
                 if diff_approval_signed > 0:
                     approval_over_count += 1
                 else:
                     approval_under_count += 1
-            if diff_disapproval > Config.LENIENCY.value:
+            if diff_disapproval > Config.LENIENCY:
                 if diff_disapproval_signed > 0:
                     disapproval_over_count += 1
                 else:
@@ -325,9 +325,9 @@ if __name__ == '__main__':
                 
           
             # handle outliers
-            if diff_approval >= Config.OUTLIER_THRESHOLD_HARD.value:
+            if diff_approval >= Config.OUTLIER_THRESHOLD_HARD:
                 approval_outliers.append((X_train[i], Y_train[i], prediction[0]))
-            if diff_disapproval >= Config.OUTLIER_THRESHOLD_HARD.value:
+            if diff_disapproval >= Config.OUTLIER_THRESHOLD_HARD:
                 disapproval_outliers.append((X_train[i], Y_train[i], prediction[1]))
 
             #TODO: Check trend matching (does the directionality/magnitude change correlate with the actual labels)
@@ -348,17 +348,17 @@ if __name__ == '__main__':
         pw(eval_file, "Average distance (Approval): " + str(avg_diff_approval))
         pw(eval_file, "Average distance (Disapproval): " + str(avg_diff_disapproval))
         pw(eval_file, "")
-        pw(eval_file, "# of approval data points within " + str(Config.FIRST_CUTOFF.value * 100) + "% of actual: " + str(first_approval_group_count))               
-        pw(eval_file, "# of approval data points within " + str(Config.SECOND_CUTOFF.value * 100) + "% of actual: " + str(second_approval_group_count))
-        pw(eval_file, "# of approval data points within " + str(Config.THIRD_CUTOFF.value * 100) + "% of actual: " + str(third_approval_group_count))
-        pw(eval_file, "# of approval data points within " + str(Config.FOURTH_CUTOFF.value * 100) + "% of actual: " + str(fourth_approval_group_count))
-        pw(eval_file, "# of approval data points within " + str(Config.FIFTH_CUTOFF.value * 100) + "% of actual: " + str(fifth_approval_group_count))
+        pw(eval_file, "# of approval data points within " + str(Config.FIRST_CUTOFF * 100) + "% of actual: " + str(first_approval_group_count))               
+        pw(eval_file, "# of approval data points within " + str(Config.SECOND_CUTOFF * 100) + "% of actual: " + str(second_approval_group_count))
+        pw(eval_file, "# of approval data points within " + str(Config.THIRD_CUTOFF * 100) + "% of actual: " + str(third_approval_group_count))
+        pw(eval_file, "# of approval data points within " + str(Config.FOURTH_CUTOFF * 100) + "% of actual: " + str(fourth_approval_group_count))
+        pw(eval_file, "# of approval data points within " + str(Config.FIFTH_CUTOFF * 100) + "% of actual: " + str(fifth_approval_group_count))
         pw(eval_file, "")
-        pw(eval_file, "# of disapproval data points within " + str(Config.FIRST_CUTOFF.value * 100) + "% of actual: " + str(first_disapproval_group_count))               
-        pw(eval_file, "# of disapproval data points within " + str(Config.SECOND_CUTOFF.value * 100) + "% of actual: " + str(second_disapproval_group_count))
-        pw(eval_file, "# of disapproval data points within " + str(Config.THIRD_CUTOFF.value * 100) + "% of actual: " + str(third_disapproval_group_count))
-        pw(eval_file, "# of disapproval data points within " + str(Config.FOURTH_CUTOFF.value * 100) + "% of actual: " + str(fourth_disapproval_group_count))
-        pw(eval_file, "# of disapproval data points within " + str(Config.FIFTH_CUTOFF.value * 100) + "% of actual: " + str(fifth_disapproval_group_count))
+        pw(eval_file, "# of disapproval data points within " + str(Config.FIRST_CUTOFF * 100) + "% of actual: " + str(first_disapproval_group_count))               
+        pw(eval_file, "# of disapproval data points within " + str(Config.SECOND_CUTOFF * 100) + "% of actual: " + str(second_disapproval_group_count))
+        pw(eval_file, "# of disapproval data points within " + str(Config.THIRD_CUTOFF * 100) + "% of actual: " + str(third_disapproval_group_count))
+        pw(eval_file, "# of disapproval data points within " + str(Config.FOURTH_CUTOFF * 100) + "% of actual: " + str(fourth_disapproval_group_count))
+        pw(eval_file, "# of disapproval data points within " + str(Config.FIFTH_CUTOFF * 100) + "% of actual: " + str(fifth_disapproval_group_count))
         pw(eval_file, "")
         pw(eval_file, "# of approval over-estimates: " + str(approval_over_count))
         pw(eval_file, "# of approval under-estimates: " + str(approval_under_count))
@@ -426,36 +426,36 @@ if __name__ == '__main__':
             total_diff_disapproval += diff_disapproval
 
             # count which 'percentiile' results fall in
-            if percent_diff_approval < Config.FIRST_CUTOFF.value:
+            if percent_diff_approval < Config.FIRST_CUTOFF:
                 first_approval_group_count += 1
-            if percent_diff_approval < Config.SECOND_CUTOFF.value:
+            if percent_diff_approval < Config.SECOND_CUTOFF:
                 second_approval_group_count += 1
-            if percent_diff_approval < Config.THIRD_CUTOFF.value:
+            if percent_diff_approval < Config.THIRD_CUTOFF:
                 third_approval_group_count += 1
-            if percent_diff_approval < Config.FOURTH_CUTOFF.value:
+            if percent_diff_approval < Config.FOURTH_CUTOFF:
                 fourth_approval_group_count += 1
-            if percent_diff_approval < Config.FIFTH_CUTOFF.value:
+            if percent_diff_approval < Config.FIFTH_CUTOFF:
                 fifth_approval_group_count += 1
  
             # count which 'percentiile' results fall in
-            if percent_diff_disapproval < Config.FIRST_CUTOFF.value:
+            if percent_diff_disapproval < Config.FIRST_CUTOFF:
                 first_disapproval_group_count += 1
-            if percent_diff_disapproval < Config.SECOND_CUTOFF.value:
+            if percent_diff_disapproval < Config.SECOND_CUTOFF:
                 second_disapproval_group_count += 1
-            if percent_diff_disapproval < Config.THIRD_CUTOFF.value:
+            if percent_diff_disapproval < Config.THIRD_CUTOFF:
                 third_disapproval_group_count += 1
-            if percent_diff_disapproval < Config.FOURTH_CUTOFF.value:
+            if percent_diff_disapproval < Config.FOURTH_CUTOFF:
                 fourth_disapproval_group_count += 1
-            if percent_diff_disapproval < Config.FIFTH_CUTOFF.value:
+            if percent_diff_disapproval < Config.FIFTH_CUTOFF:
                 fifth_disapproval_group_count += 1 
 
             # count over/understimates
-            if diff_approval > Config.LENIENCY.value:
+            if diff_approval > Config.LENIENCY:
                 if diff_approval_signed > 0:
                     approval_over_count += 1
                 else:
                     approval_under_count += 1
-            if diff_disapproval > Config.LENIENCY.value:
+            if diff_disapproval > Config.LENIENCY:
                 if diff_disapproval_signed > 0:
                     disapproval_over_count += 1
                 else:
@@ -463,9 +463,9 @@ if __name__ == '__main__':
                 
           
             # handle outliers
-            if diff_approval >= Config.OUTLIER_THRESHOLD_HARD.value:
+            if diff_approval >= Config.OUTLIER_THRESHOLD_HARD:
                 approval_outliers.append((X_test[i], Y_test[i], prediction[0]))
-            if diff_disapproval >= Config.OUTLIER_THRESHOLD_HARD.value:
+            if diff_disapproval >= Config.OUTLIER_THRESHOLD_HARD:
                 disapproval_outliers.append((X_test[i], Y_test[i], prediction[1]))
 
             
@@ -487,17 +487,17 @@ if __name__ == '__main__':
         pw(eval_file, "Average distance (Approval): " + str(avg_diff_approval))
         pw(eval_file, "Average distance (Disapproval): " + str(avg_diff_disapproval))
         pw(eval_file, "")
-        pw(eval_file, "# of approval data points within " + str(Config.FIRST_CUTOFF.value * 100) + "% of actual: " + str(first_approval_group_count))               
-        pw(eval_file, "# of approval data points within " + str(Config.SECOND_CUTOFF.value * 100) + "% of actual: " + str(second_approval_group_count))
-        pw(eval_file, "# of approval data points within " + str(Config.THIRD_CUTOFF.value * 100) + "% of actual: " + str(third_approval_group_count))
-        pw(eval_file, "# of approval data points within " + str(Config.FOURTH_CUTOFF.value * 100) + "% of actual: " + str(fourth_approval_group_count))
-        pw(eval_file, "# of approval data points within " + str(Config.FIFTH_CUTOFF.value * 100) + "% of actual: " + str(fifth_approval_group_count))
+        pw(eval_file, "# of approval data points within " + str(Config.FIRST_CUTOFF * 100) + "% of actual: " + str(first_approval_group_count))               
+        pw(eval_file, "# of approval data points within " + str(Config.SECOND_CUTOFF * 100) + "% of actual: " + str(second_approval_group_count))
+        pw(eval_file, "# of approval data points within " + str(Config.THIRD_CUTOFF * 100) + "% of actual: " + str(third_approval_group_count))
+        pw(eval_file, "# of approval data points within " + str(Config.FOURTH_CUTOFF * 100) + "% of actual: " + str(fourth_approval_group_count))
+        pw(eval_file, "# of approval data points within " + str(Config.FIFTH_CUTOFF * 100) + "% of actual: " + str(fifth_approval_group_count))
         pw(eval_file, "")
-        pw(eval_file, "# of disapproval data points within " + str(Config.FIRST_CUTOFF.value * 100) + "% of actual: " + str(first_disapproval_group_count))               
-        pw(eval_file, "# of disapproval data points within " + str(Config.SECOND_CUTOFF.value * 100) + "% of actual: " + str(second_disapproval_group_count))
-        pw(eval_file, "# of disapproval data points within " + str(Config.THIRD_CUTOFF.value * 100) + "% of actual: " + str(third_disapproval_group_count))
-        pw(eval_file, "# of disapproval data points within " + str(Config.FOURTH_CUTOFF.value * 100) + "% of actual: " + str(fourth_disapproval_group_count))
-        pw(eval_file, "# of disapproval data points within " + str(Config.FIFTH_CUTOFF.value * 100) + "% of actual: " + str(fifth_disapproval_group_count))
+        pw(eval_file, "# of disapproval data points within " + str(Config.FIRST_CUTOFF * 100) + "% of actual: " + str(first_disapproval_group_count))               
+        pw(eval_file, "# of disapproval data points within " + str(Config.SECOND_CUTOFF * 100) + "% of actual: " + str(second_disapproval_group_count))
+        pw(eval_file, "# of disapproval data points within " + str(Config.THIRD_CUTOFF * 100) + "% of actual: " + str(third_disapproval_group_count))
+        pw(eval_file, "# of disapproval data points within " + str(Config.FOURTH_CUTOFF * 100) + "% of actual: " + str(fourth_disapproval_group_count))
+        pw(eval_file, "# of disapproval data points within " + str(Config.FIFTH_CUTOFF * 100) + "% of actual: " + str(fifth_disapproval_group_count))
         pw(eval_file, "")
         pw(eval_file, "# of approval over-estimates: " + str(approval_over_count))
         pw(eval_file, "# of approval under-estimates: " + str(approval_under_count))
@@ -577,5 +577,5 @@ if __name__ == '__main__':
             "NUM_LAYERS",
             "YEARS"
         ]
-        plt.savefig(os.path.join(Config.PLOT_DIR.value, (Config.dump_config(config_params) + ".png")))
-        pickle.dump(k_fold_scores, open(os.path.join(Config.PLOT_DIR.value, Config.dump_config(config_params) + "_k_fold_scores_negmse.txt"), "wb"))
+        plt.savefig(os.path.join(Config.PLOT_DIR, (Config.dump_config(config_params) + ".png")))
+        pickle.dump(k_fold_scores, open(os.path.join(Config.PLOT_DIR, Config.dump_config(config_params) + "_k_fold_scores_negmse.txt"), "wb"))
