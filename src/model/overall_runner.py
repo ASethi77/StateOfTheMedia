@@ -55,7 +55,6 @@ def corpus_to_day_features(date, corpus_for_day, output):
     topics_precomputed = os.path.exists(topic_extraction_cache_filename)
     sentiments_precomputed = os.path.exists(sentiment_analysis_cache_filename)
 
-    print("processing day {0} with {1} articles".format(date, len(corpus_for_day)))
     day_feature_vector = [0.0] * (Config.NUM_TOPICS + 1) # features are topic labels plus sentiment value
     day_sentiments = 0
     day_topics = [0.0] * (Config.NUM_TOPICS)
@@ -83,7 +82,6 @@ def corpus_to_day_features(date, corpus_for_day, output):
                 day_sentiments += doc_sentiment
 
             t1_doc = current_milli_time()
-            print("\tprocessing doc {0} took {1} milliseconds".format(doc_num, t1_doc - t0_doc))
 
     if not topics_precomputed:
         for i in range(len(day_topics)):
@@ -93,7 +91,6 @@ def corpus_to_day_features(date, corpus_for_day, output):
         day_sentiments /= float(len(corpus_for_day))
 
     t1_day = current_milli_time()
-    print("processing day {0} took {1} milliseconds".format(date, t1_day - t0_day))
     output[date] = day_topics + [ day_sentiments ]
    
     if not topics_precomputed: 
