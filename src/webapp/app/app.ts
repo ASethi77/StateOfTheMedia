@@ -72,6 +72,7 @@ class StateOfTheMediaController {
             articleList = this.articlesPerDay[date.toDateString()];
         } else {
             articleList = [];
+            this.articlesPerDay[date.toDateString()] = articleList;
         }
         articleList.push(article);
 
