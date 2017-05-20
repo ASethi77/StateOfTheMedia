@@ -1,3 +1,5 @@
+from sklearn.externals import joblib
+
 class RegressionModel:
 	def __init__(self, train_data):
 		self.train_x, self.train_y = train_data
@@ -12,9 +14,9 @@ class RegressionModel:
 	def evaluate(self, x_in, y_out):
 		raise NotImplementedError
 
-	def save(self):
-		raise NotImplementedError
+	def save(self, filename):
+		joblib.dump(self.model, filename)
 
-	def load(self, filename):
-		raise NotImplementedError
+	def load(filename):
+		return joblib.load(filename)
 

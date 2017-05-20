@@ -1,5 +1,4 @@
 from numpy import tanh
-from util.config import Paths
 
 def get_doc_sentiment_by_words(doc, sentiment_corpus):
 	sum_sentiments = 0.0
@@ -20,18 +19,25 @@ def get_doc_sentiment_by_words(doc, sentiment_corpus):
 		sentiment_ratio = float((pos_sentiments if pos_sentiments > neg_sentiments else -1 * neg_sentiments) / total_sentiments)
 	return sentiment_ratio
 
-def load_sentiment_corpus(tff_path=Paths.WORD_SENTIMENT_CORPUS_PATH.value):
+def load_mpqa_sentiment_corpus(tff_path):
 	words = []
 	with open(tff_path, "r") as tff:
 		for word in tff:
 			words.append(word.strip())
 	sentiment_per_word = {}
 	tff_entries = []
-	for word in words:
+	for index, word in enumerate(words):
 		attributes = [[kvpair for kvpair in word.split("=")] for word in word.split(" ")]
 		attributes_dict = {}
 		for attribute in attributes:
-			attributes_dict[attribute[0]] = attribute[1]
+			try:
+				attributes_dict[attribute[0]] = attribute[1]
+			except IndexError as e:
+				print(e)
+				print(index)
+				print(attribute)
+				print(attribute[0])
+				print(attribute[1])
 			tff_entries.append(attributes_dict)
 	for word_attrs in tff_entries:
 		word = word_attrs["word1"]

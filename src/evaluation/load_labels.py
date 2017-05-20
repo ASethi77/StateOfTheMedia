@@ -42,8 +42,8 @@ class LabelLoader(object):
                                   new_neutral = (prev_approval[2] * num_entries + neutral) / (num_entries + 1)
                                   self.labels[curr_date] = (new_approve, new_disapprove, new_neutral, num_entries + 1)
 
-        for curr_date in self.labels:
-            self.labels[curr_date] = [ self.labels[curr_date][0] ]
+        # for curr_date in self.labels:
+            # self.labels[curr_date] = [ self.labels[curr_date][0] ]
 
     # write the label vector out to file
     def write_to_file(self, file_name):
