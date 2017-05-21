@@ -19,11 +19,13 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 from flask import Flask, request
+from flask import jsonify
 
 import pickle
 import model.overall_runner as Runner
 import model.sentiment_analysis as Sentiment
 import model.topic_extractor as Topic
+from nltk.tokenize import word_tokenize
 from model.linear_regression_model import LinearRegressionModel
 from model.MLPRegressionModel import MLPRegressionModel
 from util.config import Config, Paths, RegressionModels
@@ -39,7 +41,7 @@ def init_server():
     sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.SENTIMENT_ANALYSIS_METHOD.value.name])
 
     topic_extraction_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR.value, topic_extraction_cache_filename)
-    sentiment_analysis_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR.value, sentiment_analysis_cache_filename)
+    sentiment_analysis_cache_flename = os.path.join(Config.FEATURE_CACHE_DIR.value, sentiment_analysis_cache_filename)
 
     topics_precomputed = os.path.exists(topic_extraction_cache_filename)
     sentiments_precomputed = os.path.exists(sentiment_analysis_cache_filename)'''
@@ -74,15 +76,25 @@ def index():
 @app.route('/model/sentiment', methods=['GET'])
 def get_sentiment():
     text = request.args.get('text')
-    sentiment_ratio = Config.SENTIMENT_ANALYSIS_METHOD.value.value(text)
-    return jsonify({'sentiment': sentiment})
+    tokens = word_tokenize(text)
+    if Config.DEBUG_WEBAPP.value:
+        print("RECEIVED text: " + text)
+    sentiment_ratio = Config.SENTIMENT_ANALYSIS_METHOD.value.value(tokens)
+    if Config.DEBUG_WEBAPP.value:
+        print("GOT SENTIMENT OF: " + str(sentiment_ratio))
+    return jsonify({'sentiment': sentiment_ratio})
 
 # expects a GET request attribute "text"
 # outputs {topic: [...]}
 @app.route('/model/topic', methods=['GET'])
 def get_topic():
     text = request.args.get('text')
-    topics = Config.TOPIC_EXTRACTION_METHOD.value.value(text)
+    tokens = word_tokenize(text)
+    if Config.DEBUG_WEBAPP.value:
+        print("RECEIVED text: " + text)
+    topics = Config.TOPIC_EXTRACTION_METHOD.value.value(tokens)
+    if Config.DEBUG_WEBAPP.value:
+        print("GOT TOPIC WEIGHTS OF: " + str(topics))
     return jsonify({'topics': topics})
 
 # TODO: Should we move the calculation all to the server side?
