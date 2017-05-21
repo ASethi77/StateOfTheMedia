@@ -25,7 +25,6 @@ def load_corpora(corpus_name, corpus_dir="../data/", years=[]):
         print("Loading corpora for years between {0} and {1}".format(years[0], years[-1]))
         corpora = {}
         for year in range(years[0], years[-1]):
-            print(os.path.join(corpus_path, "{}*industrial*".format(year)))
             corpora_files_for_year = glob.glob(os.path.join(corpus_path, "{}*industrial*".format(year)))
             corpora_for_year = 0
             for corpora_file in corpora_files_for_year:

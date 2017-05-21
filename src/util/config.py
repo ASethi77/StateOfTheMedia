@@ -25,8 +25,9 @@ class RegressionModels(Enum):
 
 class SentimentAnalysisMethod(Enum):
     # Sentiment analysis via MPQA lexicon
-    MPQA = partial(lambda doc: get_doc_sentiment_by_words(doc, load_mpqa_sentiment_corpus(Paths.WORD_SENTIMENT_CORPUS_PATH.value)))
-    
+    MPQA_LEXICON = load_mpqa_sentiment_corpus(Paths.WORD_SENTIMENT_CORPUS_PATH.value)
+    MPQA = partial(lambda doc: get_doc_sentiment_by_words(doc, SentimentAnalysisMethod.MPQA_LEXICON.value))
+
     def __str__(self):
         return self.name
 
@@ -49,11 +50,8 @@ class Config(Enum):
     # ----------------------------------------------
     CORPUS_NAME = "NYTCorpus"
     CORPUS_SUBDIR = "NytCorpora"
-    #CORPUS_NAME = "WebHoseDevCorpus"
-    #CORPUS_SUBDIR = "WebhosePoliticalNewsCorpora"
     PLOT_DIR = "/opt/nlp_shared/plot/"
-    CORPUS_YEARS = [1993, 1994]
-    #CORPUS_YEARS = []
+    CORPUS_YEARS = [1993, 1998]
 
     # Feature computation configuration params
     # ----------------------------------------------
@@ -61,9 +59,10 @@ class Config(Enum):
     DAY_RANGE = 10 # how many days of articles we should compound into one feature vector
     SENTIMENT_ANALYSIS_METHOD = SentimentAnalysisMethod.MPQA
     TOPIC_EXTRACTION_METHOD = TopicExtractionMethod.MANUAL_TOPIC_EXTRACTION_MIXTURE
+    TOPIC_NAMES = list(hand_selected_label_index.keys())
     NUM_TOPICS = len(hand_selected_label_index.keys())
 
-    FEATURE_CACHE_DIR = "/opt/nlp_shared/analysis_cache/"
+    FEATURE_CACHE_DIR = os.environ.get("FEATURE_CACHE_DIR", "/opt/nlp_shared/analysis_cache/")
 
     # Regression model selection configuration params
     # -----------------------------------------------

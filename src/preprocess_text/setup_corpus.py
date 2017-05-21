@@ -16,14 +16,11 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
     i = 0
     doc_list = []
     date_to_docs = defaultdict(list)
-    print(type(myparser))
-    print(article_parser_type)
     # where doc is a textacy doc object
     num_articles = myparser.num_articles()
     for doc in myparser.yield_articles():
         if (doc.n_sents >= min_length): # ignore junk news (articles that are too short)
             i += 1
-            print("Processing doc #: " + str(i))
             if per_date:
                 datestr = doc.metadata['published']
                 datetime_object = parse(datestr)
