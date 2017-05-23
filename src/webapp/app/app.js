@@ -44,6 +44,9 @@ var StateOfTheMediaController = (function () {
             year: "numeric", month: "short",
             day: "numeric"
         };
+        this.onSelectCard = function (card) {
+            this.selectedArticle = card;
+        };
         this.getApprovalRatings = function (date) {
             var controller = this;
             var args = { "date": date.toDateString() };
@@ -56,19 +59,23 @@ var StateOfTheMediaController = (function () {
                 console.log(response);
             });
         };
-        this.addArticle = function (content, date) {
-            var article = new Article(content, date);
-            var dateKey = date.toDateString();
-            var articleList;
-            if (dateKey in this.articlesPerDay) {
-                articleList = this.articlesPerDay[date.toDateString()];
+        this.addArticle = function (content) {
+            if ("undefined" === typeof content) {
+                return;
             }
-            else {
-                articleList = [];
-                this.articlesPerDay[date.toDateString()] = articleList;
-            }
-            articleList.push(article);
-            this.updateSentimentForDate(date);
+            var args = { 'id': this.sessionState, 'text': content };
+            console.log(args);
+            var controller = this;
+            this.$http({
+                method: "POST",
+                data: angular.toJson(args),
+                url: "http://localhost:5000/article/add"
+            }).then(function success(response) {
+                // var responseData = angular.fromJson(response.data);
+                // console.log(responseData)
+            }, function error(response) {
+                console.log(response);
+            });
         };
         this.$scope = $scope;
         this.$http = $http;
@@ -85,32 +92,23 @@ var StateOfTheMediaController = (function () {
                 url: "http://localhost:5000/register"
             }).then(function success(response) {
                 $cookies.put(this.SESSION_KEY_NAME, newSessionState);
+                console.log(this.sessionState);
             }, function error(response) {
                 console.log(response);
             });
         }
-    }
-    StateOfTheMediaController.prototype.updateSentimentForDate = function (day) {
-        var sentimentPerDay = this.sentimentPerDay;
-        var dateKey = day.toDateString();
-        var articleList = this.articlesPerDay[dateKey];
-        var controller = this;
+        this.sessionState = newSessionState;
         this.$http({
             method: "POST",
-            data: angular.toJson(articleList),
-            url: "/nlp"
+            data: angular.toJson({ "id": newSessionState }),
+            url: "http://localhost:5000/register"
         }).then(function success(response) {
-            var responseData = angular.fromJson(response.data);
-            var sentiment = responseData['sentiment'];
-            sentimentPerDay[dateKey] = sentiment;
-            controller.currentExpression = controller.sentimentToFacialExpression(sentiment);
-            controller.topicLabels = responseData['topicLabels'];
-            controller.topicStrengths = responseData['topicStrengths'];
+            $cookies.put(this.SESSION_KEY_NAME, newSessionState);
+            console.log(this.sessionState);
         }, function error(response) {
             console.log(response);
         });
-    };
-    ;
+    }
     StateOfTheMediaController.prototype.sentimentToFacialExpression = function (sentiment) {
         if (sentiment >= 0.0 && sentiment < 0.20) {
             return this.possibleExpressions["Really Sad"];

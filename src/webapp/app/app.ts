@@ -34,6 +34,7 @@ class StateOfTheMediaController {
     public $http = null;
 
     private readonly SESSION_KEY_NAME: string = "StateOfTheMediaSession";
+    private sessionState;
 
     constructor($scope: ng.IScope, $http: ng.IModule, $cookies) {
         this.$scope = $scope;
@@ -53,15 +54,30 @@ class StateOfTheMediaController {
                 data: angular.toJson({"id": newSessionState}),
                 url: "http://localhost:5000/register"
             }).then(function success(response) {
-                $cookies.put(this.SESSION_KEY_NAME, newSessionState)
+                $cookies.put(this.SESSION_KEY_NAME, newSessionState);
+                console.log(this.sessionState);
                }, function error(response) {
                     console.log(response);
             });
         }
+        this.sessionState = newSessionState;
+
+        this.$http({
+            method: "POST",
+            data: angular.toJson({"id": newSessionState}),
+            url: "http://localhost:5000/register"
+        }).then(function success(response) {
+            $cookies.put(this.SESSION_KEY_NAME, newSessionState);
+            console.log(this.sessionState);
+           }, function error(response) {
+                console.log(response);
+        });
     }
 
     private articlesPerDay:  { [day: string]: Article[] } = {};
     private sentimentPerDay: { [day: string]: number } = {};
+
+    public selectedArticle;
 
     private possibleExpressions: { [name: string]: FacialExpression } = {
         "Really Happy": new FacialExpression("Really Happy", "./img/ReallyHappy.jpg"),
@@ -79,9 +95,13 @@ class StateOfTheMediaController {
     public lineChartLabels: string[] = [];
     public lineChartOptions: { legend: { display: true } };
 
-    public dateFormattingOptions = {  
-        year: "numeric", month: "short",  
+    public dateFormattingOptions = {
+        year: "numeric", month: "short",
         day: "numeric"
+    };
+
+    public onSelectCard = function(card: number) {
+        this.selectedArticle = card
     };
 
     public getApprovalRatings = function(date: Date) {
@@ -97,42 +117,22 @@ class StateOfTheMediaController {
         });
     };
 
-    public addArticle = function (content: string, date: Date)
+    public addArticle = function (content: string)
     {
-        var article: Article = new Article(content, date);
-        var dateKey: string = date.toDateString();
-
-        var articleList: Article[];
-        if (dateKey in this.articlesPerDay) {
-            articleList = this.articlesPerDay[date.toDateString()];
-        } else {
-            articleList = [];
-            this.articlesPerDay[date.toDateString()] = articleList;
+        if ("undefined" === typeof content) {
+            return
         }
-        articleList.push(article);
 
-        this.updateSentimentForDate(date);
-    };
-
-    public updateSentimentForDate(day: Date)
-    {
-        var sentimentPerDay = this.sentimentPerDay;
-        var dateKey = day.toDateString();
-        var articleList: Article[] = this.articlesPerDay[dateKey];
-
+        var args = {'id': this.sessionState, 'text': content};
+        console.log(args);
         let controller = this;
         this.$http({
             method: "POST",
-            data: angular.toJson(articleList),
-            url: "/nlp"
+            data: angular.toJson(args),
+            url: "http://localhost:5000/article/add"
         }).then(function success(response) {
-                var responseData = angular.fromJson(response.data);
-                var sentiment: number = responseData['sentiment'];
-                sentimentPerDay[dateKey] = sentiment;
-                controller.currentExpression = controller.sentimentToFacialExpression(sentiment);
-
-                controller.topicLabels = responseData['topicLabels'];
-                controller.topicStrengths = responseData['topicStrengths'];
+                // var responseData = angular.fromJson(response.data);
+                // console.log(responseData)
            }, function error(response) {
                 console.log(response);
         });
@@ -241,7 +241,6 @@ app.run( function ($httpBackend) {
      //         {}
      //     ];
      // });
-
 
 });
 
