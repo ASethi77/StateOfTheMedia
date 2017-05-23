@@ -28,6 +28,9 @@
                     <button type="button"
                             class="btn btn-success"
                             ng-click="MainController.addArticle(articleContent, articleDate)">Add Article</button>
+                    <button type="button"
+                            class="btn btn-success"
+                            ng-click="MainController.getApprovalRatings(articleDate)">Get Approval Ratings</button>
                 </form>
             </div>
             <div class="row">
@@ -48,6 +51,15 @@
                             chart-labels="MainController.topicLabels">
                     </canvas> 
                 </div>
+                <div class="col-md-6">
+                    <h3 class="text-center">Predictions</h3>
+                    <canvas id="radar2" class="chart chart-line"
+                            chart-colors="['rgba(66,179,244,0.4)']"
+                            chart-data="MainController.approvalRatingData"
+                            chart-options="MainController.lineChartOptions"
+                            chart-labels="MainController.lineChartLabels">
+                    </canvas>
+                </div>
             </div>
         </div>
     </body>
@@ -57,6 +69,7 @@
         <script src="bower_components/chart.js/dist/Chart.min.js"></script>
         <script src="bower_components/angular/angular.min.js"></script>
         <script src="bower_components/angular-mocks/angular-mocks.js"></script>
+        <script src="bower_components/angular-cookies/angular-cookies.js"></script>
         <script src="bower_components/angular-resource/angular-resource.min.js"></script>
         <script src="bower_components/angular-chart.js/dist/angular-chart.min.js"></script>
     <script src="app.js" type="application/javascript"></script>

@@ -39,6 +39,13 @@ class TopicExtractionMethod(Enum):
         return self.name
 
 class Config():
+    # Debugging flags
+    # ---------------------------------------------
+    DEBUG_WEBAPP = False # for server debug messages
+    DEBUG_MODEL_BUILDING = False # for overall running/initialization debug messages
+    DEBUG_FUNCTIONS = False # for sentiment analysis/topic extraction debug messages
+    DEBUG_GENERAL = False # for everything else
+
     # General model testing params
     # ----------------------------------------------
     CORPUS_NAME = "NYTCorpus"
@@ -48,8 +55,8 @@ class Config():
 
     # Feature computation configuration params
     # ----------------------------------------------
-    POLL_DELAY = 1 # how far into the future we should predict
-    DAY_RANGE = 15 # how many days of articles we should compound into one feature vector
+    POLL_DELAY = 7 # how far into the future we should predict
+    DAY_RANGE = 10 # how many days of articles we should compound into one feature vector
     SENTIMENT_ANALYSIS_METHOD = SentimentAnalysisMethod.MPQA
     TOPIC_EXTRACTION_METHOD = TopicExtractionMethod.MANUAL_TOPIC_EXTRACTION_MIXTURE
     TOPIC_NAMES = list(hand_selected_label_index.keys())
@@ -67,8 +74,8 @@ class Config():
 
     # Model evaluation configuration params
     # -----------------------------------------------
-    TRAINING_PARTITION = 0.20 # fraction of data to use for testing
-    OUTLIER_THRESHOLD_HARD = 15 # percentage (as a decimal) of how much above or below the actual is considered an extreme outlier
+    TRAINING_PARTITION = 0.35 # fraction of data to use for testing
+    OUTLIER_THRESHOLD_HARD = 10 # percentage (as a decimal) of how much above or below the actual is considered an extreme outlier
     OUTLIER_THRESHOLD_PERCENT = 0.25 # percentage (as a decimal) relative to the actual is considered an extreme outlier
     FIRST_CUTOFF = 0.02
     SECOND_CUTOFF = 0.05

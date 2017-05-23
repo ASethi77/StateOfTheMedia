@@ -19,7 +19,7 @@ class Article {
 }
 
 class StateOfTheMediaController {
-    static AngularDependencies = [ '$scope', '$http', StateOfTheMediaController ];
+    static AngularDependencies = [ '$scope', '$http', '$cookies', StateOfTheMediaController ];
 
     public static $inject = [
         '$scope',
@@ -33,12 +33,31 @@ class StateOfTheMediaController {
     public $scope: ng.IScope = null;
     public $http = null;
 
-    constructor($scope: ng.IScope, $http: ng.IModule) {
+    private readonly SESSION_KEY_NAME: string = "StateOfTheMediaSession";
+
+    constructor($scope: ng.IScope, $http: ng.IModule, $cookies) {
         this.$scope = $scope;
         this.$http = $http;
 
         // default date for demo
         this.$scope.articleDate = new Date(2016, 8, 21);
+
+        // check to see if our cookie exists in the browser already
+        if (!$cookies.get(this.SESSION_KEY_NAME)) {
+            // console.log(this.SESSION_KEY_NAME);
+
+            // if it doesn't exist, register a new session id with
+            var newSessionState = getNewSession();
+            this.$http({
+                method: "POST",
+                data: angular.toJson({"id": newSessionState}),
+                url: "http://localhost:5000/register"
+            }).then(function success(response) {
+                $cookies.put(this.SESSION_KEY_NAME, newSessionState)
+               }, function error(response) {
+                    console.log(response);
+            });
+        }
     }
 
     private articlesPerDay:  { [day: string]: Article[] } = {};
@@ -56,11 +75,27 @@ class StateOfTheMediaController {
     public showExpression: boolean = true;
     public topicLabels: string[] = [];
     public topicStrengths: number[] = [];
+    public approvalRatingData: number[] = [];
+    public lineChartLabels: string[] = [];
+    public lineChartOptions: { legend: { display: true } };
 
     public dateFormattingOptions = {  
         year: "numeric", month: "short",  
         day: "numeric"
-    };  
+    };
+
+    public getApprovalRatings = function(date: Date) {
+        let controller = this;
+        let args = {"date": date.toDateString()};
+        this.$http.get("http://localhost:5000/approvalRatings", {params: args})
+            .then(function success(response) {
+                var responseData = angular.fromJson(response.data);
+                controller.approvalRatingData = responseData['approvalRatings'];
+                controller.lineChartLabels = responseData['labels'];
+           }, function error(response) {
+                console.log(response);
+        });
+    };
 
     public addArticle = function (content: string, date: Date)
     {
@@ -85,7 +120,7 @@ class StateOfTheMediaController {
         var dateKey = day.toDateString();
         var articleList: Article[] = this.articlesPerDay[dateKey];
 
-        var controller = this;
+        let controller = this;
         this.$http({
             method: "POST",
             data: angular.toJson(articleList),
@@ -119,11 +154,14 @@ class StateOfTheMediaController {
             return this.currentExpression;
         }
     }
+
+
 }
 
 var app = angular.module('StateOfTheMediaApp', [
     'chart.js',
-    'ngMockE2E'
+    // 'ngMockE2E',
+    'ngCookies'
 ]);
 
 app.config(function (ChartJsProvider) {
@@ -132,7 +170,7 @@ app.config(function (ChartJsProvider) {
         global: {
             colors: ['#97BBCD', '#DCDCDC', '#F7464A', '#46BFBD', '#FDB45C', '#949FB1', '#4D5360']
         }
-      
+
     });
     // Configure all doughnut charts
     ChartJsProvider.setOptions('doughnut', {
@@ -143,44 +181,72 @@ app.config(function (ChartJsProvider) {
     });
 });
 
-app.run(['$httpBackend', function ($httpBackend) {
-    $httpBackend.whenPOST("/nlp").respond(function (method, url, data) {
-        // generate fake sentiment
-        var sentiment = Math.random();
+app.run( function ($httpBackend) {
+    // $httpBackend.whenPOST("/nlp").respond(function (method, url, data) {
+    //     // generate fake sentiment
+    //     var sentiment = Math.random();
+    //
+    //     // generate fake topic strengths for the day
+    //     const NUM_TOPICS: number = 5;
+    //     const TOPIC_LABELS = [ 'economy', 'foreign relations', 'war', 'social issues', 'other' ];
+    //     var topics : number[] = [];
+    //     var sum: number = 0.0;
+    //     for (var i = 0 ; i < NUM_TOPICS; i++) {
+    //         var topicValue = Math.random();
+    //         topics.push(topicValue);
+    //         sum += topicValue;
+    //     }
+    //     for (var i = 0; i < NUM_TOPICS; i++) {
+    //         topics[i] = topics[i] / sum * 100.0;
+    //     }
+    //
+    //     // generate approval rating
+    //     var approvalRating: number = Math.random() * 100.0;
+    //
+    //     return [
+    //         // response status code
+    //         200,
+    //
+    //         // response data (sentiment, topics, predicted approval ratings for day)
+    //         {
+    //             'sentiment': sentiment,
+    //             'topicLabels': TOPIC_LABELS,
+    //             'topicStrengths': topics,
+    //             'approval': approvalRating
+    //         },
+    //
+    //         // extra headers (I think?)
+    //         {}
+    //     ];
+    // });
+    //
+    // $httpBackend.whenGET("/approvalRatings").respond(function(url) {
+    //     let approvalRatings = [70, 75, 70, 68, 80, 70, 72, 50, 80, 90, 20];
+    //
+    //     return [
+    //         200,
+    //
+    //         {
+    //             'approvalRatings': approvalRatings
+    //         },
+    //
+    //         {}
+    //     ];
+    // });
 
-        // generate fake topic strengths for the day
-        const NUM_TOPICS: number = 5;
-        const TOPIC_LABELS = [ 'economy', 'foreign relations', 'war', 'social issues', 'other' ];
-        var topics : number[] = [];
-        var sum: number = 0.0;
-        for (var i = 0 ; i < NUM_TOPICS; i++) {
-            var topicValue = Math.random();
-            topics.push(topicValue);
-            sum += topicValue;
-        }
-        for (var i = 0; i < NUM_TOPICS; i++) {
-            topics[i] = topics[i] / sum * 100.0;
-        }
+     // $httpBackend.whenPOST("/register").respond(function (method, url, data) {
+     //     return [
+     //         200,
+     //         {},
+     //         {}
+     //     ];
+     // });
 
-        // generate approval rating
-        var approvalRating: number = Math.random() * 100.0;
 
-        return [
-            // response status code
-            200,
-
-            // response data (sentiment, topics, predicted approval ratings for day)
-            { 
-                'sentiment': sentiment,
-                'topicLabels': TOPIC_LABELS,
-                'topicStrengths': topics,
-                'approval': approvalRating
-            },
-
-            // extra headers (I think?)
-            {}
-        ];
-    });
-}]);
+});
 
 app.controller('StateOfTheMediaController', StateOfTheMediaController.AngularDependencies);
+
+function getNewSession() {
+    return Math.floor(Math.random() * (Number.MAX_VALUE - Number.MIN_VALUE + 1)) + Number.MIN_VALUE;
+}

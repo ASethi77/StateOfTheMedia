@@ -12,37 +12,51 @@
 # RUN WITH: python3 ./server.py
 
 # code to fix PYTHONPATH
+import pickle
 import sys
 import os
+
+import datetime
+from dateutil.parser import parse
+from sklearn.externals import joblib
+
 PACKAGE_PARENT = '../..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, json
+from flask_cors import CORS, cross_origin
 
-# import pickle
-#
-# import model.sentiment_analysis as Sentiment
-# import model.topic_extractor as Topic
+import pickle
+import json
+import model.overall_runner as Runner
+import model.sentiment_analysis as Sentiment
+import model.topic_extractor as Topic
+from nltk.tokenize import word_tokenize
+
 from model.linear_regression_model import LinearRegressionModel
+from evaluation.load_labels import LabelLoader
 from model.regression_model import RegressionModel
 # from model.MLPRegressionModel import MLPRegressionModel
 from util.config import Config #, Paths, RegressionModels
 from preprocess_text.document import Document
 from model.overall_runner import corpus_to_day_features
 from preprocess_text.corpus import Corpus
-import json
 from operator import add
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='')
+CORS(app)
 
 sentiment_corpus = None
 topic_corpus = None
 model = None
+labels = None
+clients = {}
 
 def init_server():
     global model
+    global labels
     # '''topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.TOPIC_EXTRACTION_METHOD.value.name])
     # sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.SENTIMENT_ANALYSIS_METHOD.value.name])
     #
@@ -70,41 +84,59 @@ def init_server():
     # model.train()
     # print("Done.")
     # print("Server set up. Ready to go!")
-    model = LinearRegressionModel.load("/Users/johndowling/Documents/Drew/cse481N/StateOfTheMedia/data/TrainedModules/TEMP_MODEL_2017-05-16_18:05:38.043479")
-
-
-def sentiment(text):
-    sentiment_ratio = Config.SENTIMENT_ANALYSIS_METHOD.value.value(Document(content=text))
-    return {'sentiment': sentiment_ratio}
-
-def topics(text):
-    topics = Config.TOPIC_EXTRACTION_METHOD.value.value(text)
-    return {'topics': topics}
+    model = LinearRegressionModel.load("../data/TrainedModels/TEMP_MODEL_2017-05-16_18:05:38.043479")
+    # label_loader = LabelLoader()
+    # label_loader.load_json()
+    # labels = label_loader.get_labels()
+    # print(labels)
+    with open("../data/all_labels.json", mode="rb") as f:
+        labels = pickle.load(f)
 
 # -------------End Points-------------------
 @app.route('/')
 def index():
-    return "MAIN PAGE UNDER CONSTRUCTION"
+    return app.send_static_file('index.html')
 
 # expects a GET request attribute "text"
 # outputs {sentiment: double}
 @app.route('/model/sentiment', methods=['GET'])
 def get_sentiment():
     text = request.args.get('text')
-    return jsonify(sentiment(text))
+    tokens = word_tokenize(text)
+    if Config.DEBUG_WEBAPP.value:
+        print("RECEIVED text: " + text)
+    sentiment_ratio = Config.SENTIMENT_ANALYSIS_METHOD.value.value(tokens)
+    if Config.DEBUG_WEBAPP.value:
+        print("GOT SENTIMENT OF: " + str(sentiment_ratio))
+    return jsonify({'sentiment': sentiment_ratio})
 
 # expects a GET request attribute "text"
 # outputs {topic: [...]}
 @app.route('/model/topic', methods=['GET'])
 def get_topic():
     text = request.args.get('text')
-    return jsonify(topics(text))
+    tokens = word_tokenize(text)
+    if Config.DEBUG_WEBAPP.value:
+        print("RECEIVED text: " + text)
+    topics = Config.TOPIC_EXTRACTION_METHOD.value.value(tokens)
+    if Config.DEBUG_WEBAPP.value:
+        print("GOT TOPIC WEIGHTS OF: " + str(topics))
+    return jsonify({'topics': topics})
+
+@app.route('/approvalRatings', methods=['GET'])
+def get_approval_ratings():
+    date = request.args.get('date')
+    base_date = parse(date)
+    date_list = [str(base_date - datetime.timedelta(days=x)) for x in range(-5, 5, 1)]
+    approval_ratings = {'approvalRatings': [70, 75, 70, 68, 80, 70, 72, 50, 80, 90, 20],
+                        'labels': date_list}
+    return jsonify(approval_ratings)
 
 @app.route('/nlp', methods=['POST'])
 def do_nlp():
     global model
 
-    article_list = json.loads(request.data)
+    article_list = json.loads(request.data.decode('utf-8'))
     doc_list = []
     date = None
     for article in article_list:
@@ -154,7 +186,20 @@ def get_predict():
     return jsonify({'sentiment': total_sentiment, 'topicStrengths': total_topics, 'topicLabels': TOPIC_LABELS, 'approval': output[0][0]})
     return jsonify({'error': 'No suitable model loaded'})
 
+# for registering a client with the server
+# returns 403 error if no id passed or id already exists on server
+@app.route('/register', methods=['POST'])
+def register():
+    global clients
+    data = json.loads(request.data.decode('utf-8'))
+    if data['id'] in clients.keys():
+        return "There is already an entry for " + str(data['id']), 403
+    else:
+        clients[data['id']] = []
+        return "Registered ID: " + str(data['id']), 200
+    return "NO ID FOUND", 403
+
 if __name__ == '__main__':
     init_server()
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
     print("App is running")
