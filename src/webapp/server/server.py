@@ -16,6 +16,7 @@ import pickle
 import sys
 import os
 
+import datetime
 from dateutil.parser import parse
 from sklearn.externals import joblib
 
@@ -85,7 +86,7 @@ def init_server():
     # labels = label_loader.get_labels()
     # print(labels)
     with open("/Users/johndowling/Documents/Drew/cse481N/StateOfTheMedia/data/all_labels.json", mode="rb") as f:
-        pickle.load(f)
+        labels = pickle.load(f)
 
 
 def sentiment(text):
@@ -118,11 +119,10 @@ def get_topic():
 @app.route('/approvalRatings', methods=['GET'])
 def get_approval_ratings():
     date = request.args.get('date')
-    print(date)
-    dtobj = parse(date)
-    print(labels)
+    base_date = parse(date)
+    date_list = [str(base_date - datetime.timedelta(days=x)) for x in range(-5, 5, 1)]
     approval_ratings = {'approvalRatings': [70, 75, 70, 68, 80, 70, 72, 50, 80, 90, 20],
-                        'labels': [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]}
+                        'labels': date_list}
     return jsonify(approval_ratings)
 
 @app.route('/nlp', methods=['POST'])
