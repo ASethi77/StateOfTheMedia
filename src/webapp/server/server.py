@@ -106,6 +106,7 @@ def index():
 
 @app.route('/article/add', methods=['POST'])
 def add_article():
+    global clients
     data = json.loads(request.data.decode('utf-8'))
     if data['id'] not in clients.keys():
         clients[data['id']] = []
@@ -114,6 +115,7 @@ def add_article():
 
 @app.route('/article/remove', methods=['POST'])
 def remove_article():
+    global clients
     data = json.loads(request.data.decode('utf-8'))
     if Config.DEBUG_WEBAPP:
         print("REMOVING ARTICLE " + str(data['index']) + " for client #" + str(data['id']))
@@ -135,12 +137,13 @@ def remove_article():
 # outputs {sentiment: double}
 @app.route('/model/sentiment', methods=['GET'])
 def get_sentiment():
+    global clients
     client_id = request.args.get('id')
     article_index = request.args.get('index')
     if client_id not in clients.keys():
         return "No record for id: " + str(client_id), 400
     articles = clients[client_id]
-    else if article_index >= len(articles):
+    if article_index >= len(articles):
         return "No article for given index: " + str(article_index), 400
     text = articles[article_index]
     tokens = word_tokenize(text)
@@ -151,12 +154,13 @@ def get_sentiment():
 # outputs {topic: [...]}
 @app.route('/model/topic', methods=['GET'])
 def get_topic():
+    global clients
     client_id = request.args.get('id')
     article_index = request.args.get('index')
     if client_id not in clients.keys():
         return "No record for id: " + str(client_id), 400
     articles = clients[client_id]
-    else if article_index >= len(articles):
+    if article_index >= len(articles):
         return "No article for given index: " + str(article_index), 400
     text = articles[article_index]
     tokens = word_tokenize(text)
@@ -205,27 +209,34 @@ def do_nlp():
 # outputs {result: [...]} where the array indices correspond to approve, disapprove, neutral
 @app.route('/model/predict', methods=['POST'])
 def get_predict():
+    global clients
     data = json.loads(request.data.decode('utf-8'))
-    '''# TODO: use actual topic labels here
-    TOPIC_LABELS = ["A", "B", "C", "D", "E", "F"]
-    request_json = request.get_json()
-    data = json.loads(request_json)
+    client_id = data['id']
+    if client_id not in clients.keys():
+        return "No client found for id: " + str(client_id), 400
+    articles = clients[data['id']]
     total_sentiment = 0.0
     total_topics = [0.0]
-    for text in data:
-        doc_topics = Config.TOPIC_EXTRACTION_METHOD.value.value(text)
-    doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value.value(text)
-    total_sentiment = map(add, total_sentiment, doc_topics)
-    total_sentiment += doc_sentiment
-    for indx in range(len(total_sentiment)):
-        total_sentiment[indx] = total_sentiment[indx] / len(data)
-    total_sentiment = total_sentiment / len(data)
-  
+    article_count = 0
+    for index in data['articles']:
+        if index < len() and index >= 0:
+            text = articles[index]
+            tokens = word_tokenize(text)
+            doc_topics = Config.TOPIC_EXTRACTION_METHOD.value(text)
+            doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value(text) 
+            total_sentiment += doc_sentiment
+            total_topics = map(add, total_topics, doc_topics)
+            article_count += 1
+    # normalize data
+    for i in range(len(totel_sentiment)):
+        total_sentiment[i] = total_sentiment[i] / article_count
+    total_sentiment = total_sentiment / article_count
     if model is not None:
         features = total_topics + total_sentiment
         output = model.predict(features)
-    return jsonify({'sentiment': total_sentiment, 'topicStrengths': total_topics, 'topicLabels': TOPIC_LABELS, 'approval': output[0][0]})
-    return jsonify({'error': 'No suitable model loaded'})'''
+        return jsonify({'prediction': output[0]})
+    else:
+        return "No model loaded", 400
 
 # for registering a client with the server
 # returns 403 error if no id passed or id already exists on server
