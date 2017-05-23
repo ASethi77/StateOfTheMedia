@@ -55,18 +55,8 @@ class LSTMRegressionModel:
         train_y_temp = self.train_y
         assert(len(train_x_temp) == len(train_y_temp))
 
-        # Select the right target device when this notebook is being tested:
-        """
-        if 'TEST_DEVICE' in os.environ:
-            if os.environ['TEST_DEVICE'] == 'cpu':
-                C.device.try_set_default_device(C.device.cpu())
-            else:
-                C.device.try_set_default_device(C.device.gpu(0))
-        """
-
         self.x_seq = C.sequence.input(shape=self.train_x.shape[1])
-        N = 5
-        self._model = self.create_model(self.x_seq, N)
+        self._model = self.create_model(self.x_seq, self.window_size)
 
     def _next_batch(self):
         i = 0
