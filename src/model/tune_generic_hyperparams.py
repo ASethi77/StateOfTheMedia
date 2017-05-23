@@ -38,12 +38,10 @@ if __name__ == '__main__':
             plot_y[delay - 1].append(day_range)
             Config.POLL_DELAY = delay
             Config.DAY_RANGE = day_range
-            print("Prediction delay is {}, day_range is {}".format(delay, day_range))
+            
             features_by_day = corpora_to_day_features(political_article_corpora)
-            #print("Number of days of data: " + str(len(features_by_day.items())))
             features_by_range = combine_day_ranges(features_by_day)
             X, Y = match_features_to_labels(features_by_range, approval_ratings)
-            #print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X))) 
 
             X_train_and_val, X_test, Y_train_and_val, Y_test = \
                     train_test_split(X, Y, test_size=Config.TRAINING_PARTITION, random_state=2)
@@ -51,7 +49,15 @@ if __name__ == '__main__':
             X_train, X_val, Y_train, Y_val = \
                     train_test_split(X_train_and_val, Y_train_and_val, test_size=0.125, random_state=2)
 
-            model = LinearRegressionModel([X_train, Y_train])
+            # setup model and configurations
+
+            if Config.REGRESSION_MODEL == RegressionModels.LINEAR_REGRESSION:
+                model = LinearRegressionModel([X_train, Y_train])
+            elif Config.REGRESSION_MODEL == RegressionModels.MLP:
+                model = MLPRegressionModel([X_train, Y_train])
+
+            print(model)
+
             model.train()
             mse = model.evaluate(X_val, Y_val)
             print("MSE is {}".format(mse))
@@ -59,5 +65,5 @@ if __name__ == '__main__':
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    surf = ax.plot_wireframe(plot_x, plot_y, plot_z, cmap=cm.coolwarm, antialiased=True)
+    surf = ax.plot_surface(plot_x, plot_y, plot_z, cmap=cm.coolwarm, antialiased=True, rstride=2, cstride=2)
     plt.show()

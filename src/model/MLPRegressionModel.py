@@ -1,5 +1,6 @@
 from .regression_model import RegressionModel
 from sklearn.neural_network import MLPRegressor
+from sklearn.metrics import mean_squared_error
 
 class MLPRegressionModel(RegressionModel):
     def __init__(self, train_data, hidden_layer_sizes=(100,), activation='tanh', alpha=0.0001, learning_rate='adaptive'):
@@ -16,4 +17,5 @@ class MLPRegressionModel(RegressionModel):
         return self.model.predict(x_in)
 
     def evaluate(self, x_in, y_out):
-        return self.model.score(x_in, y_out)
+        predicted = self.predict(x_in)
+        return mean_squared_error(y_out, predicted)

@@ -1,23 +1,28 @@
 from numpy import tanh
+#from util.config import Config
 
 def get_doc_sentiment_by_words(doc, sentiment_corpus):
-	sum_sentiments = 0.0
-	pos_sentiments = 0
-	neg_sentiments = 0
-	for token in doc:
-		token = str(token)
-		if token in sentiment_corpus:
-			sentiment = sentiment_corpus[token]
-			if sentiment > 0:
-				pos_sentiments += 1
-			else:
-				neg_sentiments += 1	
-			sum_sentiments += sentiment_corpus[token]
-	total_sentiments = pos_sentiments + neg_sentiments
-	sentiment_ratio = 0.0
-	if total_sentiments > 0:
-		sentiment_ratio = float((pos_sentiments if pos_sentiments > neg_sentiments else -1 * neg_sentiments) / total_sentiments)
-	return sentiment_ratio
+    sum_sentiments = 0.0
+    pos_sentiments = 0.0
+    neg_sentiments = 0.0
+    for token in doc:
+        token = str(token)
+        #if Config.DEBUG_FUNCTION.value:
+        #    print("Checking Token: " + token)
+        if token in sentiment_corpus.keys():
+            sentiment = sentiment_corpus[token]
+            if sentiment > 0:
+                pos_sentiments += 1.0
+            else:
+                neg_sentiments += 1.0	
+            sum_sentiments += sentiment_corpus[token]
+        #if Config.DEBUG_FUNCTION.value:
+        #    print("P: " + str(pos_sentiments) + " N: " + str(neg_sentiments))
+    total_sentiments = pos_sentiments + neg_sentiments
+    sentiment_ratio = 0.0
+    if total_sentiments > 0:
+        sentiment_ratio = float((pos_sentiments if pos_sentiments > neg_sentiments else -1 * neg_sentiments) / total_sentiments)
+    return sentiment_ratio
 
 def load_mpqa_sentiment_corpus(tff_path):
 	words = []
