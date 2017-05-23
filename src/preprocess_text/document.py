@@ -8,8 +8,12 @@ class Document:
     def load(doc_dir, name=""):
         doc_path = Document.get_filename(doc_dir, name)
         document = None
-        with open(doc_path, "rb") as doc:
-            document = pickle.load(doc)
+        try:
+            with open(doc_path, "rb") as doc:
+                document = pickle.load(doc)
+        except FileNotFoundError as e:
+            print("WARNING: Unable to load document {}. Returning empty placeholder instead".format(doc_path))
+            return Document()
 
         return document
 

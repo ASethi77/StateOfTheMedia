@@ -1,6 +1,7 @@
 # adding this to suppress sklearn DeprecationWarnings...
+from mpl_toolkits.mplot3d import Axes3D
 from model.linear_regression_model import LinearRegressionModel
-
+from model.MLPRegressionModel import MLPRegressionModel
 
 def warn(*args, **kwargs):
     pass
@@ -10,7 +11,7 @@ warnings.warn = warn
 import time
 from sklearn.model_selection import train_test_split
 
-from util.config import Config
+from util.config import Config, RegressionModels
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
@@ -21,7 +22,7 @@ current_milli_time = lambda: int(round(time.time() * 1000))
 
 if __name__ == '__main__':
     PREDICT_DELAY_RANGE = range(1, 15)
-    DAY_RANGE_RANGE = range(1, 30)
+    DAY_RANGE_RANGE = range(1, 10)
 
     plot_x = []
     plot_y = []

@@ -46,8 +46,8 @@ def doc_to_text(doc, max_sentences=-1):
     return sentences
 
 def corpus_to_day_features(date, corpus_for_day, output):
-    topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME, Config.TOPIC_EXTRACTION_METHOD.name])
-    sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME, Config.SENTIMENT_ANALYSIS_METHOD.name])
+    topic_extraction_cache_filename = "_".join([str(date.date()), Config.CORPUS_NAME, Config.TOPIC_EXTRACTION_METHOD.name])
+    sentiment_analysis_cache_filename = "_".join([str(date.date()), Config.CORPUS_NAME, Config.SENTIMENT_ANALYSIS_METHOD.name])
 
     topic_extraction_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR, topic_extraction_cache_filename)
     sentiment_analysis_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR, sentiment_analysis_cache_filename)
