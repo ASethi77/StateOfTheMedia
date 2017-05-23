@@ -1,81 +1,94 @@
 <html ng-app="StateOfTheMediaApp">
-    <head>
+<head>
 
-        <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
-    </head>
+    <link rel="stylesheet" href="../server/static/bower_components/bootstrap/dist/css/bootstrap.min.css">
+</head>
 
-    <body ng-controller="StateOfTheMediaController as MainController">
-        <div class="container">
-            <div class="row">
-                <h1 class="text-center">Welcome to State Of The Media</h1>
+<body ng-controller="StateOfTheMediaController as MainController">
+<div class="container">
+    <div class="row">
+        <h1 class="text-center">Welcome to State Of The Media</h1>
+    </div>
+    <div class="row">
+        <h2>Add articles for analysis</h2>
+        <form>
+            <div class="form-group">
+                <label>
+                    Specify date article was published:
+                    <input type="date"
+                           ng-model="articleDate"></input>
+                </label>
+                <textarea name=""
+                          id="article-text"
+                          rows="10"
+                          class="form-control"
+                          placeholder="Paste the contents of a news article here"
+                          ng-model="articleContent"></textarea>
             </div>
-            <div class="row">
-                <h2>Add articles for analysis</h2>
-                <form>
-                    <div class="form-group">
-                        <label>
-                        Specify date article was published:
-                        <input type="date"
-                               ng-model="articleDate"></input>
-                        </label>
-                        <textarea name=""
-                                id="article-text"
-                                rows="10"
-                                class="form-control"
-                                placeholder="Paste the contents of a news article here"
-                                ng-model="articleContent"></textarea>
-                    </div>
-                    <button type="button"
-                            class="btn btn-success"
-                            ng-click="MainController.addArticle(articleContent, articleDate)">Add Article</button>
-                    <button type="button"
-                            class="btn btn-success"
-                            ng-click="MainController.getApprovalRatings(articleDate)">Get Approval Ratings</button>
-                </form>
-            </div>
-            <div class="row">
-                <md-content layout-padding>
-                    Lorem ipsum dolor sit amet, ne quod novum mei.
-                </md-content>
-            </div>
-            <div class="row">
-                <h2 class="text-center" class="ng-cloak">Analysis of News for {{ articleDate.toLocaleDateString('en-US', MainController.dateFormattingOptions) }}</h2>
-                <div class="col-md-6">
-                    <h3 class="text-center">Sentiment Analysis</h3>
-                    <p class="ng-cloak">Today's news is <strong>{{ MainController.currentExpression.expressionName }}</strong>.</p>
-                    <img ng-src="{{ MainController.currentExpression.imgPath }}"
-                        alt="{{ MainController.currentExpression.expressionName }}"
-                        ng-show="MainController.showExpression"
-                        class="ng-cloak center-block img-responsive"/>
-                </div>
-                <div class="col-md-6">
-                    <h3 class="text-center">News Analysis</h3>
-                    <canvas id="radar" class="chart chart-radar"
-                            chart-colors="['rgba(66,179,244,0.4)']"
-                            chart-data="MainController.topicStrengths"
-                            chart-labels="MainController.topicLabels">
-                    </canvas> 
-                </div>
-                <div class="col-md-6">
-                    <h3 class="text-center">Predictions</h3>
-                    <canvas id="radar2" class="chart chart-line"
-                            chart-colors="['rgba(66,179,244,0.4)']"
-                            chart-data="MainController.approvalRatingData"
-                            chart-options="MainController.lineChartOptions"
-                            chart-labels="MainController.lineChartLabels">
-                    </canvas>
-                </div>
-            </div>
+            <button type="button"
+                    class="btn btn-success"
+                    ng-click="MainController.addArticle(articleContent, articleDate)">Add Article
+            </button>
+            <button type="button"
+                    class="btn btn-success"
+                    ng-click="MainController.getApprovalRatings(articleDate)">Get Approval Ratings
+            </button>
+        </form>
+    </div>
+    <div flex layout="row" layout-align="center">
+        <md-content flex="50">
+            <md-card ng-repeat="i in [1, 2, 3, 4, 5, 6]" >
+                <md-card-content>
+                    <h2>Card headline</h2>
+                    <p>Card content</p>
+                </md-card-content>
+                <md-card-actions layout="row" layout-align="end center">
+                    <md-button>Action 1</md-button>
+                    <md-button>Action 2</md-button>
+                </md-card-actions>
+            </md-card>
+        </md-content>
+    </div>
+    <div class="row">
+        <h2 class="text-center" class="ng-cloak">Analysis of News for {{ articleDate.toLocaleDateString('en-US',
+            MainController.dateFormattingOptions) }}</h2>
+        <div class="col-md-6">
+            <h3 class="text-center">Sentiment Analysis</h3>
+            <p class="ng-cloak">Today's news is <strong>{{ MainController.currentExpression.expressionName }}</strong>.
+            </p>
+            <img ng-src="{{ MainController.currentExpression.imgPath }}"
+                 alt="{{ MainController.currentExpression.expressionName }}"
+                 ng-show="MainController.showExpression"
+                 class="ng-cloak center-block img-responsive"/>
         </div>
-    </body>
-        <!--<script src="bower_components/requirejs/require.js"></script>-->
-        <script src="bower_components/jquery/dist/jquery.min.js"></script>
-        <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
-        <script src="bower_components/chart.js/dist/Chart.min.js"></script>
-        <script src="bower_components/angular/angular.min.js"></script>
-        <script src="bower_components/angular-mocks/angular-mocks.js"></script>
-        <script src="bower_components/angular-cookies/angular-cookies.js"></script>
-        <script src="bower_components/angular-resource/angular-resource.min.js"></script>
-        <script src="bower_components/angular-chart.js/dist/angular-chart.min.js"></script>
-    <script src="app.js" type="application/javascript"></script>
+        <div class="col-md-6">
+            <h3 class="text-center">News Analysis</h3>
+            <canvas id="radar" class="chart chart-radar"
+                    chart-colors="['rgba(66,179,244,0.4)']"
+                    chart-data="MainController.topicStrengths"
+                    chart-labels="MainController.topicLabels">
+            </canvas>
+        </div>
+        <div class="col-md-6">
+            <h3 class="text-center">Predictions</h3>
+            <canvas id="radar2" class="chart chart-line"
+                    chart-colors="['rgba(66,179,244,0.4)']"
+                    chart-data="MainController.approvalRatingData"
+                    chart-options="MainController.lineChartOptions"
+                    chart-labels="MainController.lineChartLabels">
+            </canvas>
+        </div>
+    </div>
+</div>
+</body>
+<!--<script src="bower_components/requirejs/require.js"></script>-->
+<script src="../server/static/bower_components/jquery/dist/jquery.min.js"></script>
+<script src="../server/static/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<script src="../server/static/bower_components/chart.js/dist/Chart.min.js"></script>
+<script src="../server/static/bower_components/angular/angular.min.js"></script>
+<script src="../server/static/bower_components/angular-mocks/angular-mocks.js"></script>
+<script src="../server/static/bower_components/angular-cookies/angular-cookies.js"></script>
+<script src="../server/static/bower_components/angular-resource/angular-resource.min.js"></script>
+<script src="../server/static/bower_components/angular-chart.js/dist/angular-chart.min.js"></script>
+<script src="app.js" type="application/javascript"></script>
 </html>
