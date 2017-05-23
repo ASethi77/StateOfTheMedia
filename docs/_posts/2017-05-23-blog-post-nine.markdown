@@ -66,7 +66,7 @@ this could happen:
 
 We also plotted our train, test, and validation loss (MSE):
 
-![Training set prediction vs. actual (LSTM)](http://i.imgur.com/RjGKMKV.png)
+![Train test validation loss LSTM](http://i.imgur.com/L0l2KeF.png)
 
 Note that after about 500 epochs, the validation and test loss appear to
 converge/stagnate. Our MSE for the validation loss appeared to drop by about
