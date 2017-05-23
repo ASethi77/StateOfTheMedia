@@ -48,7 +48,7 @@ class Config():
     
     # Webapp/Server
     # ----------------------------------------------
-    TARGET_MODEL = "TEMP_MODEL_2017-05-16_18:05:38.043479"
+    TARGET_MODEL = "TEMP_MODEL_2017-05-16.043479"
     DATA_DIR = "../data/"
     MODEL_DIR = DATA_DIR + "TrainedModels/"
     TARGET_LABELS = "all_labels.json"    

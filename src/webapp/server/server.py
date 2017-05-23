@@ -52,11 +52,19 @@ sentiment_corpus = None
 topic_corpus = None
 model = None
 labels = None
+approval_ratings = {}
+features_by_day = {}
+features_by_range = {}
 clients = {}
 
 def init_server():
     global model
     global labels
+    global approval_ratings
+    global features_by_day
+    global features_by_range
+
+    print("Initializing server")
     # '''topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.TOPIC_EXTRACTION_METHOD.value.name])
     # sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.SENTIMENT_ANALYSIS_METHOD.value.name])
     #
@@ -67,16 +75,16 @@ def init_server():
     # sentiments_precomputed = os.path.exists(sentiment_analysis_cache_filename)'''
     # #TODO: If we load pre-built models from disk, we can avoid all this work on start up
     # print("Loading corpora...")
-    # approval_ratings, political_article_corpora = Runner.init_corpora()
+    approval_ratings, political_article_corpora = Runner.init_corpora()
     # print("Done.")
     # print("Building features...")
-    # features_by_day = Runner.corpora_to_day_features(political_article_corpora)
+    features_by_day = Runner.corpora_to_day_features(political_article_corpora)
     # print("Done.")
     # print("Combining features...")
-    # features_by_range = Runner.combine_day_ranges(features_by_day)
+    features_by_range = Runner.combine_day_ranges(features_by_day)
     # print("Done.")
     # print("Matching features to labels...")
-    # X, Y = Runner.match_features_to_labels(features_by_range, approval_ratings)
+    #X, Y = Runner.match_features_to_labels(features_by_range, approval_ratings)
     # print("Done.")
     # #TODO: use model type specified in config
     # model = LinearRegressionModel([X, Y]) # Train using all data.
@@ -84,7 +92,6 @@ def init_server():
     # model.train()
     # print("Done.")
     # print("Server set up. Ready to go!")
-    print("Initializing server")
     print("Loading model from disk: " + Config.TARGET_MODEL)
     print("Working...")
     model = LinearRegressionModel.load(Config.MODEL_DIR + Config.TARGET_MODEL)
@@ -106,98 +113,124 @@ def index():
 
 @app.route('/article/add', methods=['POST'])
 def add_article():
+    global clients
     data = json.loads(request.data.decode('utf-8'))
     if data['id'] not in clients.keys():
         clients[data['id']] = []
-    clients[data['id']].append(data['text'])
+    clients[data['id']]['articles'].append(data['text'])
+    #for now use the first 8 words
+    title = ""
+    tokens = word_tokenize(data['text'])
+    for i in range(len(8)):
+        if i < len(tokens):
+            title = title + tokens[i] + " "
+    clients[data['id']]['titles'].append(title)
+    #clients[data['id']]['titles'].append(data['title'])
     return "Successfully added article", 200
 
 @app.route('/article/remove', methods=['POST'])
 def remove_article():
+    global clients
     data = json.loads(request.data.decode('utf-8'))
     if Config.DEBUG_WEBAPP:
         print("REMOVING ARTICLE " + str(data['index']) + " for client #" + str(data['id']))
     if data['id'] not in clients.keys():
         return "Nothing to remove, client not found", 400
     else:
-        articles = clients[data['id']]
+        articles = clients[data['id']]['articles']
+        titles = clients[data['id']]['titles']
         if Config.DEBUG_WEBAPP:
-            print("PRE-REMOVE: " + str(articles))
+            print("PRE-REMOVE: " + str(titles))
         if data['index'] >= len(articles):
             return "Index out of bounds", 400
         del articles[data['index']]
+        del titles[data['index']]
         if Config.DEBUG_WEBAPP:
-            print("POST-REMOVE: " + str(clients[data['id']]))
+            print("POST-REMOVE: " + str(clients[data['id']]['titles']))
         return "Successfully deleted article #" + str(data['index']), 200
-    
 
-# expects a GET request attribute "text"
+@app.route('/article/get', methods=['POST'])
+def get_article():
+    global clients
+    data = json.loads(request.data.decode('utf-8'))
+    client_id = data['id']
+    if client_id not in clients.keys():
+        return "Nothing to get, client not found", 400
+    articles = clients[client_id]['articles']
+    titles = clients[client_id]['titles']
+    article_index = data['index']
+    if article_index >= len(articles) or article_index < 0:
+        return "Index out of bounds", 400
+    else:
+        return jsonify({'title': titles[article_index], 'text': articles[article_index]})   
+
+@app.route('/article/titles', methods=['POST'])
+def get_titles():
+    global clients
+    data = json.loads(request.data.decode('utf-8'))
+    client_id = data['id']
+    if client_id not in clients.keys():
+        return "Client not found", 400
+    titles = clients[client_id]['titles']
+    return jsonify({'titles': titles})
+
+# expects a GET request attribute "id" and "index"
 # outputs {sentiment: double}
 @app.route('/model/sentiment', methods=['GET'])
 def get_sentiment():
+    global clients
     client_id = request.args.get('id')
     article_index = request.args.get('index')
     if client_id not in clients.keys():
         return "No record for id: " + str(client_id), 400
-    articles = clients[client_id]
-    else if article_index >= len(articles):
+    articles = clients[client_id]['articles']
+    if article_index >= len(articles):
         return "No article for given index: " + str(article_index), 400
     text = articles[article_index]
     tokens = word_tokenize(text)
     sentiment_ratio = Config.SENTIMENT_ANALYSIS.value(tokens)
     return jsonify({'sentiment': sentiment_ratio})
 
-# expects a GET request attribute "text"
+# expects a GET request attribute "id" and "index"
 # outputs {topic: [...]}
 @app.route('/model/topic', methods=['GET'])
 def get_topic():
+    global clients
     client_id = request.args.get('id')
     article_index = request.args.get('index')
     if client_id not in clients.keys():
         return "No record for id: " + str(client_id), 400
-    articles = clients[client_id]
-    else if article_index >= len(articles):
+    articles = clients[client_id]['articles']
+    if article_index >= len(articles):
         return "No article for given index: " + str(article_index), 400
     text = articles[article_index]
     tokens = word_tokenize(text)
     topics = Config.TOPIC_EXTRACTION_METHOD.value(tokens)
     return jsonify({'topics': topics})
 
-@app.route('/approvalRatings', methods=['GET'])
-def get_approval_ratings():
-    date = request.args.get('date')
-    base_date = parse(date)
-    date_list = [str(base_date - datetime.timedelta(days=x)) for x in range(-5, 5, 1)]
-    approval_ratings = {'approvalRatings': [70, 75, 70, 68, 80, 70, 72, 50, 80, 90, 20],
-                        'labels': date_list}
-    return jsonify(approval_ratings)
-
-@app.route('/nlp', methods=['POST'])
-def do_nlp():
-    global model
-
-    article_list = json.loads(request.data.decode('utf-8'))
-    doc_list = []
-    date = None
-    for article in article_list:
-        doc_list.append(Document(article['text']))
-        date = article['date']
-
-    day_corpus = Corpus(docs=doc_list)
-    output = dict()
-    corpus_to_day_features(date, day_corpus, output)
-
-    x_in = None
-    for v in output.values():
-        x_in = v # only one value. this is dumb
-
-    prediction = model.predict(x_in)
-    response = dict()
-    response['sentiment'] = x_in[-1]
-    response['topicLabels'] = Config.TOPIC_NAMES
-    response['topicStrings'] = x_in[0:-1]
-    response['approval'] = prediction.tolist()
-    return jsonify(response)
+@app.route('/model/history', methods=['GET'])
+def get_prediction_history():
+    global approval_ratings
+    global features_by_day
+    global features_by_range
+    data = json.loads(request.data.decode('utf-8'))
+    start_date = parse(data['start'])
+    num_days = data['days']
+    actual_labels = []
+    predicted_labels = []
+    for i in range(num_days):
+        offset = timedelta(days=i)
+        target_date = start_date + offset
+        feature = features_by_range[target_date]
+        actual_label = approval_ratings[target_date + timedelta(days=Config.POLL_DELAY)]
+        if feature is not None and actual_label is not None:
+           predict_label = model.predict(feature)
+           actual_labels.append(actual_label)
+           predicted_labels.append(predict_label[0])
+        else:
+            actual_labels.append([0.0, 0.0, 0.0])
+            predicted_labels.append([0.0, 0.0, 0.0])
+    return jsonify()
 
 # TODO: Should we move the calculation all to the server side?
 # expects a GET request attribute "docs" which is an array of strings
@@ -205,27 +238,34 @@ def do_nlp():
 # outputs {result: [...]} where the array indices correspond to approve, disapprove, neutral
 @app.route('/model/predict', methods=['POST'])
 def get_predict():
+    global clients
     data = json.loads(request.data.decode('utf-8'))
-    '''# TODO: use actual topic labels here
-    TOPIC_LABELS = ["A", "B", "C", "D", "E", "F"]
-    request_json = request.get_json()
-    data = json.loads(request_json)
+    client_id = data['id']
+    if client_id not in clients.keys():
+        return "No client found for id: " + str(client_id), 400
+    articles = clients[data['id']]['articles']
     total_sentiment = 0.0
     total_topics = [0.0]
-    for text in data:
-        doc_topics = Config.TOPIC_EXTRACTION_METHOD.value.value(text)
-    doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value.value(text)
-    total_sentiment = map(add, total_sentiment, doc_topics)
-    total_sentiment += doc_sentiment
-    for indx in range(len(total_sentiment)):
-        total_sentiment[indx] = total_sentiment[indx] / len(data)
-    total_sentiment = total_sentiment / len(data)
-  
+    article_count = 0
+    for index in data['articles']:
+        if index < len() and index >= 0:
+            text = articles[index]
+            tokens = word_tokenize(text)
+            doc_topics = Config.TOPIC_EXTRACTION_METHOD.value(text)
+            doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value(text) 
+            total_sentiment += doc_sentiment
+            total_topics = map(add, total_topics, doc_topics)
+            article_count += 1
+    # normalize data
+    for i in range(len(totel_sentiment)):
+        total_sentiment[i] = total_sentiment[i] / article_count
+    total_sentiment = total_sentiment / article_count
     if model is not None:
         features = total_topics + total_sentiment
         output = model.predict(features)
-    return jsonify({'sentiment': total_sentiment, 'topicStrengths': total_topics, 'topicLabels': TOPIC_LABELS, 'approval': output[0][0]})
-    return jsonify({'error': 'No suitable model loaded'})'''
+        return jsonify({'prediction': output[0]})
+    else:
+        return "No model loaded", 400
 
 # for registering a client with the server
 # returns 403 error if no id passed or id already exists on server
@@ -236,7 +276,7 @@ def register():
     if data['id'] in clients.keys():
         return "There is already an entry for " + str(data['id']), 400
     else:
-        clients[data['id']] = []
+        clients[data['id']] = {'articles': [], 'titles': []}
         return "Registered ID: " + str(data['id']), 200
     return "NO ID FOUND", 400
 
