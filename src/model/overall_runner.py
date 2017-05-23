@@ -12,7 +12,6 @@ import datetime
 from datetime import timedelta
 from optparse import OptionParser
 from sklearn.model_selection import cross_val_score, train_test_split
-import textacy
 from multiprocessing.dummy import Pool as ThreadPool 
 
 import model
@@ -27,7 +26,6 @@ from model.regression_model import RegressionModel
 from model.MLPRegressionModel import MLPRegressionModel
 from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
-from preprocess_text.article_parsers.webhose_article_parser import WebhoseArticleParser
 from util.config import Config, Paths, RegressionModels
 from preprocess_text.document import Document
 
@@ -46,8 +44,8 @@ def doc_to_text(doc, max_sentences=-1):
     return sentences
 
 def corpus_to_day_features(date, corpus_for_day, output):
-    topic_extraction_cache_filename = "_".join([str(date.date()), Config.CORPUS_NAME, Config.TOPIC_EXTRACTION_METHOD.name])
-    sentiment_analysis_cache_filename = "_".join([str(date.date()), Config.CORPUS_NAME, Config.SENTIMENT_ANALYSIS_METHOD.name])
+    topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME, Config.TOPIC_EXTRACTION_METHOD.name])
+    sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME, Config.SENTIMENT_ANALYSIS_METHOD.name])
 
     topic_extraction_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR, topic_extraction_cache_filename)
     sentiment_analysis_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR, sentiment_analysis_cache_filename)
@@ -60,13 +58,16 @@ def corpus_to_day_features(date, corpus_for_day, output):
     day_topics = [0.0] * (Config.NUM_TOPICS)
 
     if topics_precomputed:
+        #print("Loading topics from cache...")
         day_topics = pickle.load(open(topic_extraction_cache_filename, "rb"))
 
     if sentiments_precomputed:
+        #print("Loading sentiments from cache...")
         day_sentiments = pickle.load(open(sentiment_analysis_cache_filename, "rb"))
 
     t0_day = current_milli_time() 
     if not topics_precomputed or not sentiments_precomputed:
+        #print("Computing feature vectors...")
         doc_num = 0
         for doc in corpus_for_day:
             t0_doc = current_milli_time()
