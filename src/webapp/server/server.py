@@ -45,7 +45,7 @@ from preprocess_text.corpus import Corpus
 from operator import add
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='')
 CORS(app)
 
 sentiment_corpus = None
@@ -95,7 +95,7 @@ def init_server():
 # -------------End Points-------------------
 @app.route('/')
 def index():
-    return "MAIN PAGE UNDER CONSTRUCTION"
+    return app.send_static_file('index.html')
 
 # expects a GET request attribute "text"
 # outputs {sentiment: double}
