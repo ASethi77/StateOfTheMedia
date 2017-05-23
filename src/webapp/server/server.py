@@ -12,37 +12,46 @@
 # RUN WITH: python3 ./server.py
 
 # code to fix PYTHONPATH
+import pickle
 import sys
 import os
+
+from dateutil.parser import parse
+from sklearn.externals import joblib
+
 PACKAGE_PARENT = '../..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 from flask import Flask, request, jsonify
+from flask_cors import CORS, cross_origin
 
 # import pickle
 #
 # import model.sentiment_analysis as Sentiment
 # import model.topic_extractor as Topic
 from model.linear_regression_model import LinearRegressionModel
+from evaluation.load_labels import LabelLoader
 from model.regression_model import RegressionModel
 # from model.MLPRegressionModel import MLPRegressionModel
 from util.config import Config #, Paths, RegressionModels
 from preprocess_text.document import Document
 from model.overall_runner import corpus_to_day_features
 from preprocess_text.corpus import Corpus
-import json
 from operator import add
 
 
 app = Flask(__name__)
+CORS(app)
 
 sentiment_corpus = None
 topic_corpus = None
 model = None
+labels = None
 
 def init_server():
     global model
+    global labels
     # '''topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.TOPIC_EXTRACTION_METHOD.value.name])
     # sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.SENTIMENT_ANALYSIS_METHOD.value.name])
     #
@@ -70,7 +79,13 @@ def init_server():
     # model.train()
     # print("Done.")
     # print("Server set up. Ready to go!")
-    model = LinearRegressionModel.load("/Users/johndowling/Documents/Drew/cse481N/StateOfTheMedia/data/TrainedModules/TEMP_MODEL_2017-05-16_18:05:38.043479")
+    model = LinearRegressionModel.load("/Users/johndowling/Documents/Drew/cse481N/StateOfTheMedia/data/TrainedModels/TEMP_MODEL_2017-05-16_18:05:38.043479")
+    # label_loader = LabelLoader()
+    # label_loader.load_json()
+    # labels = label_loader.get_labels()
+    # print(labels)
+    with open("/Users/johndowling/Documents/Drew/cse481N/StateOfTheMedia/data/all_labels.json", mode="rb") as f:
+        pickle.load(f)
 
 
 def sentiment(text):
@@ -99,6 +114,16 @@ def get_sentiment():
 def get_topic():
     text = request.args.get('text')
     return jsonify(topics(text))
+
+@app.route('/approvalRatings', methods=['GET'])
+def get_approval_ratings():
+    date = request.args.get('date')
+    print(date)
+    dtobj = parse(date)
+    print(labels)
+    approval_ratings = {'approvalRatings': [70, 75, 70, 68, 80, 70, 72, 50, 80, 90, 20],
+                        'labels': [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]}
+    return jsonify(approval_ratings)
 
 @app.route('/nlp', methods=['POST'])
 def do_nlp():
@@ -156,5 +181,5 @@ def get_predict():
 
 if __name__ == '__main__':
     init_server()
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
     print("App is running")
