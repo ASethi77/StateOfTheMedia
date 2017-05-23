@@ -24,7 +24,7 @@ PACKAGE_PARENT = '../..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, json
 from flask_cors import CORS, cross_origin
 
 import pickle
@@ -55,35 +55,6 @@ labels = None
 clients = {}
 
 def init_server():
-    '''topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.TOPIC_EXTRACTION_METHOD.value.name])
-    sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.SENTIMENT_ANALYSIS_METHOD.value.name])
-
-    topic_extraction_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR.value, topic_extraction_cache_filename)
-    sentiment_analysis_cache_flename = os.path.join(Config.FEATURE_CACHE_DIR.value, sentiment_analysis_cache_filename)
-
-    topics_precomputed = os.path.exists(topic_extraction_cache_filename)
-    sentiments_precomputed = os.path.exists(sentiment_analysis_cache_filename)'''
-    #TODO: If we load pre-built models from disk, we can avoid all this work on start up
-    print("Loading corpora...")
-    approval_ratings, political_article_corpora = Runner.init_corpora()
-    print("Done.")
-    print("Building features...")
-    features_by_day = Runner.corpora_to_day_features(political_article_corpora)
-    print("Done.")
-    print("Combining features...")
-    features_by_range = Runner.combine_day_ranges(features_by_day)
-    print("Done.")
-    print("Matching features to labels...")
-    X, Y = Runner.match_features_to_labels(features_by_range, approval_ratings)
-    print("Done.")
-    #TODO: use model type specified in config
-    model = LinearRegressionModel([X, Y]) # Train using all data.
-    print("Training model...")
-    model.train()
-    print("Done.")
-    print("Server set up. Ready to go!")
-    pass
-
     global model
     global labels
     # '''topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.TOPIC_EXTRACTION_METHOD.value.name])

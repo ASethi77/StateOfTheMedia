@@ -17,13 +17,14 @@ var Article = (function () {
     return Article;
 }());
 var StateOfTheMediaController = (function () {
-    function StateOfTheMediaController($scope, $http) {
+    function StateOfTheMediaController($scope, $http, $cookies) {
         // TODO: We shouldn't have to manually set AngularJS properties/modules
         // as attributes of our instance ourselves; ideally they should be
         // injected similar to the todomvc typescript + angular example on GH
         // <see https://github.com/tastejs/todomvc/blob/gh-pages/examples/typescript-angular/js/controllers/TodoCtrl.ts>
         this.$scope = null;
         this.$http = null;
+        this.SESSION_KEY_NAME = "StateOfTheMediaSession";
         this.articlesPerDay = {};
         this.sentimentPerDay = {};
         this.possibleExpressions = {
@@ -73,6 +74,21 @@ var StateOfTheMediaController = (function () {
         this.$http = $http;
         // default date for demo
         this.$scope.articleDate = new Date(2016, 8, 21);
+        // check to see if our cookie exists in the browser already
+        if (!$cookies.get(this.SESSION_KEY_NAME)) {
+            // console.log(this.SESSION_KEY_NAME);
+            // if it doesn't exist, register a new session id with
+            var newSessionState = getNewSession();
+            this.$http({
+                method: "POST",
+                data: angular.toJson({ "id": newSessionState }),
+                url: "http://localhost:5000/register"
+            }).then(function success(response) {
+                $cookies.put(this.SESSION_KEY_NAME, newSessionState);
+            }, function error(response) {
+                console.log(response);
+            });
+        }
     }
     StateOfTheMediaController.prototype.updateSentimentForDate = function (day) {
         var sentimentPerDay = this.sentimentPerDay;
@@ -118,13 +134,15 @@ var StateOfTheMediaController = (function () {
     };
     return StateOfTheMediaController;
 }());
-StateOfTheMediaController.AngularDependencies = ['$scope', '$http', StateOfTheMediaController];
+StateOfTheMediaController.AngularDependencies = ['$scope', '$http', '$cookies', StateOfTheMediaController];
 StateOfTheMediaController.$inject = [
     '$scope',
     '$http'
 ];
 var app = angular.module('StateOfTheMediaApp', [
     'chart.js',
+    // 'ngMockE2E',
+    'ngCookies'
 ]);
 app.config(function (ChartJsProvider) {
     // Configure all charts
@@ -141,7 +159,7 @@ app.config(function (ChartJsProvider) {
         tooltips: { enabled: false }
     });
 });
-app.run(function () {
+app.run(function ($httpBackend) {
     // $httpBackend.whenPOST("/nlp").respond(function (method, url, data) {
     //     // generate fake sentiment
     //     var sentiment = Math.random();
@@ -179,6 +197,7 @@ app.run(function () {
     //         {}
     //     ];
     // });
+    //
     // $httpBackend.whenGET("/approvalRatings").respond(function(url) {
     //     let approvalRatings = [70, 75, 70, 68, 80, 70, 72, 50, 80, 90, 20];
     //
@@ -192,5 +211,15 @@ app.run(function () {
     //         {}
     //     ];
     // });
+    // $httpBackend.whenPOST("/register").respond(function (method, url, data) {
+    //     return [
+    //         200,
+    //         {},
+    //         {}
+    //     ];
+    // });
 });
 app.controller('StateOfTheMediaController', StateOfTheMediaController.AngularDependencies);
+function getNewSession() {
+    return Math.floor(Math.random() * (Number.MAX_VALUE - Number.MIN_VALUE + 1)) + Number.MIN_VALUE;
+}
