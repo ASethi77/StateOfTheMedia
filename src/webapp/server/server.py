@@ -9,7 +9,7 @@
 # /model/sentiment
 # /model/topic
 #
-# RUN WITH: python3 ./server.py
+# RUN WITH: python3 -m webapp.server.server (from src directory)
 
 # code to fix PYTHONPATH
 import pickle
@@ -84,18 +84,52 @@ def init_server():
     # model.train()
     # print("Done.")
     # print("Server set up. Ready to go!")
-    model = LinearRegressionModel.load("../data/TrainedModels/TEMP_MODEL_2017-05-16_18:05:38.043479")
+    print("Initializing server")
+    print("Loading model from disk: " + Config.TARGET_MODEL)
+    print("Working...")
+    model = LinearRegressionModel.load(Config.MODEL_DIR + Config.TARGET_MODEL)
+    print("Done.")
     # label_loader = LabelLoader()
     # label_loader.load_json()
     # labels = label_loader.get_labels()
     # print(labels)
-    with open("../data/all_labels.json", mode="rb") as f:
+    print("Loading labels from disk: " + Config.TARGET_LABELS)
+    print("Working...")
+    with open(Config.DATA_DIR + Config.TARGET_LABELS, mode="rb") as f:
         labels = pickle.load(f)
+    print("Done.")
 
 # -------------End Points-------------------
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
+
+@app.route('/article/add', methods=['POST'])
+def add_article():
+    data = json.loads(request.data.decode('utf-8'))
+    if data['id'] not in clients.keys():
+        clients[data['id']] = []
+    clients[data['id']].append(data['text'])
+    return "Successfully added article", 200
+
+@app.route('/article/remove', methods=['POST'])
+def remove_article():
+    data = json.loads(request.data.decode('utf-8'))
+    if Config.DEBUG_WEBAPP:
+        print("REMOVING ARTICLE " + str(data['index']) + " for client #" + str(data['id']))
+    if data['id'] not in clients.keys():
+        return "Nothing to remove, client not found", 400
+    else:
+        articles = clients[data['id']]
+        if Config.DEBUG_WEBAPP:
+            print("PRE-REMOVE: " + str(articles))
+        if data['index'] >= len(articles):
+            return "Index out of bounds", 400
+        del articles[data['index']]
+        if Config.DEBUG_WEBAPP:
+            print("POST-REMOVE: " + str(clients[data['id']]))
+        return "Successfully deleted article #" + str(data['index']), 200
+    
 
 # expects a GET request attribute "text"
 # outputs {sentiment: double}
@@ -193,11 +227,11 @@ def register():
     global clients
     data = json.loads(request.data.decode('utf-8'))
     if data['id'] in clients.keys():
-        return "There is already an entry for " + str(data['id']), 403
+        return "There is already an entry for " + str(data['id']), 400
     else:
         clients[data['id']] = []
         return "Registered ID: " + str(data['id']), 200
-    return "NO ID FOUND", 403
+    return "NO ID FOUND", 400
 
 if __name__ == '__main__':
     init_server()

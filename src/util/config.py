@@ -45,7 +45,14 @@ class Config():
     DEBUG_MODEL_BUILDING = False # for overall running/initialization debug messages
     DEBUG_FUNCTIONS = False # for sentiment analysis/topic extraction debug messages
     DEBUG_GENERAL = False # for everything else
-
+    
+    # Webapp/Server
+    # ----------------------------------------------
+    TARGET_MODEL = "TEMP_MODEL_2017-05-16_18:05:38.043479"
+    DATA_DIR = "../data/"
+    MODEL_DIR = DATA_DIR + "TrainedModels/"
+    TARGET_LABELS = "all_labels.json"    
+    
     # General model testing params
     # ----------------------------------------------
     CORPUS_NAME = "NYTCorpus"
