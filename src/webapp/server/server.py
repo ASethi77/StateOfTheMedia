@@ -28,6 +28,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
 
 import pickle
+import json
 import model.overall_runner as Runner
 import model.sentiment_analysis as Sentiment
 import model.topic_extractor as Topic
@@ -51,6 +52,7 @@ sentiment_corpus = None
 topic_corpus = None
 model = None
 labels = None
+clients = {}
 
 def init_server():
     '''topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME.value, Config.TOPIC_EXTRACTION_METHOD.value.name])
@@ -111,12 +113,12 @@ def init_server():
     # model.train()
     # print("Done.")
     # print("Server set up. Ready to go!")
-    model = LinearRegressionModel.load("/Users/johndowling/Documents/Drew/cse481N/StateOfTheMedia/data/TrainedModels/TEMP_MODEL_2017-05-16_18:05:38.043479")
+    model = LinearRegressionModel.load("../data/TrainedModels/TEMP_MODEL_2017-05-16_18:05:38.043479")
     # label_loader = LabelLoader()
     # label_loader.load_json()
     # labels = label_loader.get_labels()
     # print(labels)
-    with open("/Users/johndowling/Documents/Drew/cse481N/StateOfTheMedia/data/all_labels.json", mode="rb") as f:
+    with open("../data/all_labels.json", mode="rb") as f:
         labels = pickle.load(f)
 
 # -------------End Points-------------------
@@ -163,7 +165,7 @@ def get_approval_ratings():
 def do_nlp():
     global model
 
-    article_list = json.loads(request.data)
+    article_list = json.loads(request.data.decode('utf-8'))
     doc_list = []
     date = None
     for article in article_list:
@@ -212,6 +214,19 @@ def get_predict():
         output = model.predict(features)
     return jsonify({'sentiment': total_sentiment, 'topicStrengths': total_topics, 'topicLabels': TOPIC_LABELS, 'approval': output[0][0]})
     return jsonify({'error': 'No suitable model loaded'})
+
+# for registering a client with the server
+# returns 403 error if no id passed or id already exists on server
+@app.route('/register', methods=['POST'])
+def register():
+    global clients
+    data = json.loads(request.data.decode('utf-8'))
+    if data['id'] in clients.keys():
+        return "There is already an entry for " + str(data['id']), 403
+    else:
+        clients[data['id']] = []
+        return "Registered ID: " + str(data['id']), 200
+    return "NO ID FOUND", 403
 
 if __name__ == '__main__':
     init_server()

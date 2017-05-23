@@ -38,7 +38,7 @@ class TopicExtractionMethod(Enum):
     def __str__(self):
         return self.name
 
-class Config(Enum):
+class Config():
     # Debugging flags
     # ---------------------------------------------
     DEBUG_WEBAPP = False # for server debug messages
