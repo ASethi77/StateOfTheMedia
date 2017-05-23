@@ -135,26 +135,32 @@ def remove_article():
 # outputs {sentiment: double}
 @app.route('/model/sentiment', methods=['GET'])
 def get_sentiment():
-    text = request.args.get('text')
+    client_id = request.args.get('id')
+    article_index = request.args.get('index')
+    if client_id not in clients.keys():
+        return "No record for id: " + str(client_id), 400
+    articles = clients[client_id]
+    else if article_index >= len(articles):
+        return "No article for given index: " + str(article_index), 400
+    text = articles[article_index]
     tokens = word_tokenize(text)
-    if Config.DEBUG_WEBAPP.value:
-        print("RECEIVED text: " + text)
-    sentiment_ratio = Config.SENTIMENT_ANALYSIS_METHOD.value.value(tokens)
-    if Config.DEBUG_WEBAPP.value:
-        print("GOT SENTIMENT OF: " + str(sentiment_ratio))
+    sentiment_ratio = Config.SENTIMENT_ANALYSIS.value(tokens)
     return jsonify({'sentiment': sentiment_ratio})
 
 # expects a GET request attribute "text"
 # outputs {topic: [...]}
 @app.route('/model/topic', methods=['GET'])
 def get_topic():
-    text = request.args.get('text')
+    client_id = request.args.get('id')
+    article_index = request.args.get('index')
+    if client_id not in clients.keys():
+        return "No record for id: " + str(client_id), 400
+    articles = clients[client_id]
+    else if article_index >= len(articles):
+        return "No article for given index: " + str(article_index), 400
+    text = articles[article_index]
     tokens = word_tokenize(text)
-    if Config.DEBUG_WEBAPP.value:
-        print("RECEIVED text: " + text)
-    topics = Config.TOPIC_EXTRACTION_METHOD.value.value(tokens)
-    if Config.DEBUG_WEBAPP.value:
-        print("GOT TOPIC WEIGHTS OF: " + str(topics))
+    topics = Config.TOPIC_EXTRACTION_METHOD.value(tokens)
     return jsonify({'topics': topics})
 
 @app.route('/approvalRatings', methods=['GET'])
@@ -199,7 +205,8 @@ def do_nlp():
 # outputs {result: [...]} where the array indices correspond to approve, disapprove, neutral
 @app.route('/model/predict', methods=['POST'])
 def get_predict():
-    # TODO: use actual topic labels here
+    data = json.loads(request.data.decode('utf-8'))
+    '''# TODO: use actual topic labels here
     TOPIC_LABELS = ["A", "B", "C", "D", "E", "F"]
     request_json = request.get_json()
     data = json.loads(request_json)
@@ -218,7 +225,7 @@ def get_predict():
         features = total_topics + total_sentiment
         output = model.predict(features)
     return jsonify({'sentiment': total_sentiment, 'topicStrengths': total_topics, 'topicLabels': TOPIC_LABELS, 'approval': output[0][0]})
-    return jsonify({'error': 'No suitable model loaded'})
+    return jsonify({'error': 'No suitable model loaded'})'''
 
 # for registering a client with the server
 # returns 403 error if no id passed or id already exists on server
