@@ -2,7 +2,6 @@
 
 from util.topic_matchers import hand_selected_topic_labels as topic_labels, hand_selected_label_index as label_index
 from nltk.stem.lancaster import LancasterStemmer
-import textacy
 
 def manual_topic_vectorize(text):
     count_result = manual_count_signal_words(__pre_process_text(text))
@@ -24,8 +23,6 @@ def manual_one_hot_topic_vectorize(text):
 
 # returns a list of all words in the text
 def __pre_process_text(text):
-    text = textacy.preprocess.remove_punct(text)
-    text = textacy.preprocess.normalize_whitespace(text)
     return text.split()
 
 # returns a tuple of the non-normalized vector and the total count of signal words

@@ -22,16 +22,15 @@ class LSTMRegressionModel:
         with C.layers.default_options(initial_state = 0.1):
             m = C.layers.Recurrence(C.layers.LSTM(N))(x)
             m = C.ops.sequence.last(m)
-            m = C.layers.Dropout(0.2, seed=1)(m)
+            m = C.layers.Dropout(0.2)(m)
             m = cntk.layers.Dense(3, activation=C.ops.softmax)(m)
             return m
 
     def __init__(self, train_data, val_data=None, test_data=None, window_size=3, batch_size=-1):
+        print("initializing data arrays...")
         self.train_x, self.train_y = train_data
         self.train_x = np.array(self.train_x)
         self.train_y = np.array(self.train_y) / 100.0
-        print(self.train_x)
-        print(self.train_y)
 
         if val_data is not None:
             self.val_x, self.val_y = val_data
@@ -42,6 +41,7 @@ class LSTMRegressionModel:
             self.test_x, self.test_y = test_data
             self.test_x = np.array(self.test_x)
             self.test_y = np.array(self.test_y) / 100.0
+        print("done.")
 
         self._model = None
         self.window_size = window_size
@@ -51,12 +51,10 @@ class LSTMRegressionModel:
         else:
             self.batch_size = batch_size
 
-        train_x_temp = self.train_x
-        train_y_temp = self.train_y
-        assert(len(train_x_temp) == len(train_y_temp))
-
+        print("Defining CNTK model...")
         self.x_seq = C.sequence.input(shape=self.train_x.shape[1])
         self._model = self.create_model(self.x_seq, self.window_size)
+        print("done.")
 
     def _next_batch(self):
         i = 0
@@ -75,7 +73,8 @@ class LSTMRegressionModel:
             yield (new_batch_x, new_batch_y)
             i += self.batch_size
 
-    def train(self, save_intermediates=False, save_prefix=''):
+    def train(self, save_intermediates=False, save_prefix='', num_epochs=None):
+        print("Setting up model for training...")
         x = self.x_seq
         labels = C.input(shape=(self.batch_size, 3), name="y")
         #labels = C.input_variable(3)
@@ -102,15 +101,19 @@ class LSTMRegressionModel:
         # train
         loss_summary = []
         start = time.time()
-        f, a = plt.subplots(3, 2, figsize=(12, 12))
+        f, a = plt.subplots(3, 2, figsize=(100, 12))
         x_axis = list(range(len(self.train_x)))
 
-        epoch_list = list(range(0, LSTMRegressionModel.EPOCHS_DEFAULT))
+        if num_epochs is None:
+            epoch_list = list(range(0, LSTMRegressionModel.EPOCHS_DEFAULT))
+        else:
+            epoch_list = list(range(0, num_epochs))
         train_loss_epochs = [0.0] * len(epoch_list)
         val_loss_epochs = [0.0] * len(epoch_list)
         test_loss_epochs = [0.0] * len(epoch_list)
-        
+        print("done. Starting training.") 
         for epoch in epoch_list:
+            print("Training on epoch {}".format(epoch))
             for x1, y1 in self._next_batch():
                 trainer.train_minibatch({x: x1, labels: y1})
 

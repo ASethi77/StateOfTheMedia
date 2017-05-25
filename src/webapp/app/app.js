@@ -25,6 +25,8 @@ var StateOfTheMediaController = (function () {
         this.$scope = null;
         this.$http = null;
         this.SESSION_KEY_NAME = "StateOfTheMediaSession";
+        this.API_HOST_URL = "http://localhost";
+        this.API_PORT = 8891;
         this.articlesPerDay = {};
         this.sentimentPerDay = {};
         this.possibleExpressions = {
@@ -40,17 +42,16 @@ var StateOfTheMediaController = (function () {
         this.topicStrengths = [];
         this.approvalRatingData = [];
         this.lineChartLabels = [];
+        this.totalArticles = 0;
         this.dateFormattingOptions = {
             year: "numeric", month: "short",
             day: "numeric"
         };
-        this.onSelectCard = function (card) {
-            this.selectedArticle = card;
-        };
         this.getApprovalRatings = function (date) {
             var controller = this;
             var args = { "date": date.toDateString() };
-            this.$http.get("http://localhost:5000/approvalRatings", { params: args })
+            var approvalRatingsUrl = this.API_HOST_URL + ':' + this.API_PORT + '/approvalRatings';
+            this.$http.get(approvalRatingsUrl, { params: args })
                 .then(function success(response) {
                 var responseData = angular.fromJson(response.data);
                 controller.approvalRatingData = responseData['approvalRatings'];
@@ -66,15 +67,87 @@ var StateOfTheMediaController = (function () {
             var args = { 'id': this.sessionState, 'text': content };
             console.log(args);
             var controller = this;
+            var addArticleUrl = this.API_HOST_URL + ':' + this.API_PORT + '/article/add';
             this.$http({
                 method: "POST",
                 data: angular.toJson(args),
-                url: "http://localhost:5000/article/add"
+                url: addArticleUrl
             }).then(function success(response) {
-                // var responseData = angular.fromJson(response.data);
-                // console.log(responseData)
+                console.log("succesfully added article");
+                controller.totalArticles++;
+                controller.fetchSentimentMeasurement();
+                controller.fetchTopicMeasurement();
+                controller.fetchApprovalRatingPredictions();
             }, function error(response) {
+                console.error("failed to add article");
+                console.error(response);
+            });
+        };
+        this.fetchSentimentMeasurement = function () {
+            var getSentimentUrl = this.API_HOST_URL + ':' + this.API_PORT + '/model/sentimentList';
+            var indicesToAnalyze = [];
+            for (var i = 0; i < this.totalArticles; i++) {
+                indicesToAnalyze.push(i);
+            }
+            var sentimentReqData = {
+                'id': this.sessionState,
+                'indices': indicesToAnalyze
+            };
+            var controller = this;
+            this.$http({
+                method: "POST",
+                data: angular.toJson(sentimentReqData),
+                url: getSentimentUrl
+            }).then(function success(response) {
+                console.log("done computing sentiment for articles");
                 console.log(response);
+                controller.currentExpression = controller.sentimentToFacialExpression(response.data.sentiment);
+            }, function error(response) {
+                console.log("error computing sentiment for articles");
+            });
+        };
+        this.fetchTopicMeasurement = function () {
+            var getTopicUrl = this.API_HOST_URL + ':' + this.API_PORT + '/model/topicList';
+            var indicesToAnalyze = [];
+            for (var i = 0; i < this.totalArticles; i++) {
+                indicesToAnalyze.push(i);
+            }
+            var topicReqData = {
+                'id': this.sessionState,
+                'indices': indicesToAnalyze
+            };
+            var controller = this;
+            this.$http({
+                method: "POST",
+                data: angular.toJson(topicReqData),
+                url: getTopicUrl
+            }).then(function success(response) {
+                console.log("done computing topics for articles");
+                console.log(response);
+                controller.topicLabels = response.data.topicLabels;
+                controller.topicStrengths = response.data.topicStrengths;
+            }, function error(response) {
+                console.error("error computing topics for articlces");
+            });
+        };
+        this.fetchApprovalRatingPredictions = function () {
+            var indicesToPredict = [];
+            for (var i = 0; i < this.totalArticles; i++) {
+                indicesToPredict.push(i);
+            }
+            var apiReqData = {
+                'id': this.sessionState,
+                'articles': indicesToPredict
+            };
+            var predictionUrl = this.API_HOST_URL + ':' + this.API_PORT + '/model/predict';
+            this.$http({
+                method: "POST",
+                data: angular.toJson(apiReqData),
+                url: predictionUrl
+            }).then(function success(response) {
+                console.log("predicted something");
+                console.log(response);
+            }, function error(response) {
             });
         };
         this.$scope = $scope;
@@ -86,10 +159,11 @@ var StateOfTheMediaController = (function () {
             // console.log(this.SESSION_KEY_NAME);
             // if it doesn't exist, register a new session id with
             var newSessionState = getNewSession();
+            var registrationUrl = this.API_HOST_URL + ':' + this.API_PORT + '/register';
             this.$http({
                 method: "POST",
                 data: angular.toJson({ "id": newSessionState }),
-                url: "http://localhost:5000/register"
+                url: registrationUrl
             }).then(function success(response) {
                 $cookies.put(this.SESSION_KEY_NAME, newSessionState);
                 console.log(this.sessionState);
@@ -101,7 +175,7 @@ var StateOfTheMediaController = (function () {
         this.$http({
             method: "POST",
             data: angular.toJson({ "id": newSessionState }),
-            url: "http://localhost:5000/register"
+            url: registrationUrl
         }).then(function success(response) {
             $cookies.put(this.SESSION_KEY_NAME, newSessionState);
             console.log(this.sessionState);
@@ -110,19 +184,19 @@ var StateOfTheMediaController = (function () {
         });
     }
     StateOfTheMediaController.prototype.sentimentToFacialExpression = function (sentiment) {
-        if (sentiment >= 0.0 && sentiment < 0.20) {
+        if (sentiment >= -1.0 && sentiment < -0.60) {
             return this.possibleExpressions["Really Sad"];
         }
-        else if (sentiment >= 0.20 && sentiment < 0.40) {
+        else if (sentiment >= -0.60 && sentiment < -0.20) {
             return this.possibleExpressions["Sad"];
         }
-        else if (sentiment >= 0.40 && sentiment < 0.60) {
+        else if (sentiment >= -0.20 && sentiment < 0.20) {
             return this.possibleExpressions["Neutral"];
         }
-        else if (sentiment >= 0.60 && sentiment < 0.80) {
+        else if (sentiment >= 0.20 && sentiment < 0.60) {
             return this.possibleExpressions["Happy"];
         }
-        else if (sentiment >= 0.80 && sentiment <= 1.0) {
+        else if (sentiment >= 0.60 && sentiment <= 1.0) {
             return this.possibleExpressions["Really Happy"];
         }
         else {
@@ -158,64 +232,7 @@ app.config(function (ChartJsProvider) {
     });
 });
 app.run(function ($httpBackend) {
-    // $httpBackend.whenPOST("/nlp").respond(function (method, url, data) {
-    //     // generate fake sentiment
-    //     var sentiment = Math.random();
-    //
-    //     // generate fake topic strengths for the day
-    //     const NUM_TOPICS: number = 5;
-    //     const TOPIC_LABELS = [ 'economy', 'foreign relations', 'war', 'social issues', 'other' ];
-    //     var topics : number[] = [];
-    //     var sum: number = 0.0;
-    //     for (var i = 0 ; i < NUM_TOPICS; i++) {
-    //         var topicValue = Math.random();
-    //         topics.push(topicValue);
-    //         sum += topicValue;
-    //     }
-    //     for (var i = 0; i < NUM_TOPICS; i++) {
-    //         topics[i] = topics[i] / sum * 100.0;
-    //     }
-    //
-    //     // generate approval rating
-    //     var approvalRating: number = Math.random() * 100.0;
-    //
-    //     return [
-    //         // response status code
-    //         200,
-    //
-    //         // response data (sentiment, topics, predicted approval ratings for day)
-    //         {
-    //             'sentiment': sentiment,
-    //             'topicLabels': TOPIC_LABELS,
-    //             'topicStrengths': topics,
-    //             'approval': approvalRating
-    //         },
-    //
-    //         // extra headers (I think?)
-    //         {}
-    //     ];
-    // });
-    //
-    // $httpBackend.whenGET("/approvalRatings").respond(function(url) {
-    //     let approvalRatings = [70, 75, 70, 68, 80, 70, 72, 50, 80, 90, 20];
-    //
-    //     return [
-    //         200,
-    //
-    //         {
-    //             'approvalRatings': approvalRatings
-    //         },
-    //
-    //         {}
-    //     ];
-    // });
-    // $httpBackend.whenPOST("/register").respond(function (method, url, data) {
-    //     return [
-    //         200,
-    //         {},
-    //         {}
-    //     ];
-    // });
+    // Removed mock code.
 });
 app.controller('StateOfTheMediaController', StateOfTheMediaController.AngularDependencies);
 function getNewSession() {

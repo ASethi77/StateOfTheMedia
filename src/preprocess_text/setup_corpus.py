@@ -1,7 +1,6 @@
 # coding: utf-8
-from .article_parsers.webhose_article_parser import WebhoseArticleParser
+#from .article_parsers.webhose_article_parser import WebhoseArticleParser
 from .article_parsers.nyt_article_parser import NYTArticleParser
-import textacy
 from collections import defaultdict
 from dateutil.parser import parse
 from optparse import OptionParser
@@ -16,7 +15,6 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
     i = 0
     doc_list = []
     date_to_docs = defaultdict(list)
-    # where doc is a textacy doc object
     num_articles = myparser.num_articles()
     for doc in myparser.yield_articles():
         if (doc.n_sents >= min_length): # ignore junk news (articles that are too short)
@@ -55,14 +53,14 @@ def setup_corpus(article_parser_type, article_dir, corpus_name, max_articles, pe
     else:
         return Corpus("en", docs=doc_list, big_ass_data=use_big_data)
 
-def setup_dev_corpus(corpus_name="WebHoseDevCorpus", max_articles=100, per_date=True, use_big_data=False):
-    return setup_corpus(WebhoseArticleParser, "../data/Articles/WebHoseDevCorpus", corpus_name, max_articles, per_date, use_big_data)
+#def setup_dev_corpus(corpus_name="WebHoseDevCorpus", max_articles=100, per_date=True, use_big_data=False):
+    #return setup_corpus(WebhoseArticleParser, "../data/Articles/WebHoseDevCorpus", corpus_name, max_articles, per_date, use_big_data)
 
 def setup_nyt_corpus():
     return setup_corpus(NYTArticleParser, "/opt/nlp_shared/data/news_articles/nytimes/nytimes_json/", "NYTCorpus", 1e8, True, True, corpus_dir="/opt/nlp_shared/corpora/NytCorpora", min_length=1)
 
-def setup_100M_corpus(corpus_name="HundredMegsCorpus", per_date=True, use_big_data=True):
-    return setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_english_dataset/WebHoseDataset-16275-Articles", corpus_name, 1000, per_date, use_big_data)
+#def setup_100M_corpus(corpus_name="HundredMegsCorpus", per_date=True, use_big_data=True):
+    #return setup_corpus(WebhoseArticleParser, "/opt/nlp_shared/data/news_articles/webhose_english_dataset/WebHoseDataset-16275-Articles", corpus_name, 1000, per_date, use_big_data)
 
 if __name__ == '__main__':
     # add command-line flags
@@ -88,6 +86,6 @@ if __name__ == '__main__':
         if options.name != None:
             name = options.name
 
-        setup_corpus(WebhoseArticleParser, data_dir, name, max_articles, per_date, big_data)
+        #setup_corpus(WebhoseArticleParser, data_dir, name, max_articles, per_date, big_data)
     else:
         setup_nyt_corpus()
