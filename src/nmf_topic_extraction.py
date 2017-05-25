@@ -24,34 +24,46 @@ class LemmaTokenizer(object):
         def __init__(self):
             self.wnl = WordNetLemmatizer()
         def __call__(self, doc):
-            return [self.wnl.lemmatize(t) for t in word_tokenize(doc)]
+            output = []
+            for t in word_tokenize(doc):
+                if re.match('[^a-zA-Z]+', t):
+                    output.append(self.wnl.lemmatize(t))
 
-def print_top_words(model, feature_names, N_TOP_WORDS):
+def get_top_words(model, feature_names, n=0):
+    topics = []
     for topic_idx, topic in enumerate(model.components_):
         print("Topic #%d:" % topic_idx)
-        words_for_topic = [feature_names[i] for i in topic.argsort()[:-N_TOP_WORDS - 1:-1]]
         words_for_topic_filtered = []
+        words_for_topic = [feature_names[i] for i in topic.argsort()[:-n - 1:-1]]
         for word in words_for_topic:
             if re.match('[^a-zA-Z]+', word) is None:
                 words_for_topic_filtered.append(word)
-        print(" ".join(words_for_topic_filtered))
-        print()
+    topics.append(words_for_topic_filtered)
+    return topics 
 
 # returns an nmf_model given a corpora
 def build_nmf_model(corpora, num_features=N_FEATURES, num_topics=N_TOPICS):
     dataset = []
-    for corpus_for_day in corpora:
+    for date, corpus_for_day in corpora.items():
         for article in corpus_for_day:
             dataset.append('\n'.join(article.sents))
 
     tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,
-                                       max_features=num_features.
+                                       max_features=num_features,
                                        tokenizer=LemmaTokenizer(),
                                        stop_words='english')
     tfidf = tfidf_vectorizer.fit_transform(dataset)
     nmf = NMF(n_components=num_topics, random_state=1, alpha=.1, l1_ratio=.5).fit(tfidf)
     tfidf_feature_names = tfidf_vectorizer.get_feature_names()
     return (nmf, tfidf_feature_names)
+
+def write_model_to_disk(nmf_file_name, features_file_name, num_features=N_FEATURES, num_topics=N_TOPICS):
+    nmf, feature_names = build_nmf_model(corpora, num_features, num_topics)
+    pickle.dump(feature_names, features_file_name)
+    pickle.dump(nmf, nmf_file_name)
+
+def load_model_from_disk(nmf_file_name, features_file_name):
+    return (pickle.load(nmf_file_name), pickle.load(features_file_name))
     
 if __name__ == '__main__':
     for year in YEARS:
@@ -102,4 +114,4 @@ if __name__ == '__main__':
 
     print("\nTopics in NMF model:")
     tfidf_feature_names = tfidf_vectorizer.get_feature_names()
-    #print_top_words(nmf, tfidf_feature_names, N_TOP_WORDS)
+    get_top_words(nmf, tfidf_feature_names, N_TOP_WORDS)
