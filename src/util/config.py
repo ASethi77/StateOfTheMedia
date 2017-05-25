@@ -81,7 +81,7 @@ class Config():
 
     # Model evaluation configuration params
     # -----------------------------------------------
-    TRAINING_PARTITION = 0.35 # fraction of data to use for testing
+    TRAINING_PARTITION = 0.20 # fraction of data to use for testing
     OUTLIER_THRESHOLD_HARD = 10 # percentage (as a decimal) of how much above or below the actual is considered an extreme outlier
     OUTLIER_THRESHOLD_PERCENT = 0.25 # percentage (as a decimal) relative to the actual is considered an extreme outlier
     FIRST_CUTOFF = 0.02
