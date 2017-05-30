@@ -34,7 +34,7 @@ class SentimentAnalysisMethod(Enum):
 class TopicExtractionMethod(Enum):
     MANUAL_TOPIC_EXTRACTION_MIXTURE = partial(lambda text: manual_topic_vectorize(text))
     MANUAL_TOPIC_EXTRACTION_ONE_HOT = partial(lambda text: manual_one_hot_topic_vectorize(text))
-    #NMF_TOPIC_EXTRACTION_MIXTURE = partial(lambda text: nmf_topic_vectorize(text))    
+    NMF_TOPIC_EXTRACTION_MIXTURE = partial(lambda text: nmf_topic_vectorize(text))    
 
     def __str__(self):
         return self.name
@@ -65,10 +65,12 @@ class Config():
     # ----------------------------------------------
     POLL_DELAY = 7 # how far into the future we should predict
     DAY_RANGE = 10 # how many days of articles we should compound into one feature vector
+    MAX_SENTENCES = 3 # maximum # of sentences to consider from each document
     SENTIMENT_ANALYSIS_METHOD = SentimentAnalysisMethod.MPQA
-    TOPIC_EXTRACTION_METHOD = TopicExtractionMethod.MANUAL_TOPIC_EXTRACTION_MIXTURE
+    TOPIC_EXTRACTION_METHOD = TopicExtractionMethod.NMF_TOPIC_EXTRACTION_MIXTURE
     TOPIC_NAMES = list(hand_selected_label_index.keys())
-    NUM_TOPICS = len(hand_selected_label_index.keys())
+    NUM_TOPICS = 100 #len(hand_selected_label_index.keys())
+    OVERWRITE = False # set to True if you want the features to be re-computed regardless of cached files
 
     FEATURE_CACHE_DIR = os.environ.get("FEATURE_CACHE_DIR", "/opt/nlp_shared/analysis_cache/")
     TOPIC_CACHE_DIR = os.environ.get("TOPIC_CACHE_DIR", "/opt/nlp_shared/topic_models/")
@@ -83,6 +85,7 @@ class Config():
 
     # Model evaluation configuration params
     # -----------------------------------------------
+    TRAIN_TEST_CONSECUTIVE = False # set to True if you want to use continuous training/testing day ranges
     TRAINING_PARTITION = 0.20 # fraction of data to use for testing
     OUTLIER_THRESHOLD_HARD = 10 # percentage (as a decimal) of how much above or below the actual is considered an extreme outlier
     OUTLIER_THRESHOLD_PERCENT = 0.25 # percentage (as a decimal) relative to the actual is considered an extreme outlier
