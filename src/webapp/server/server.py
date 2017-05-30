@@ -30,6 +30,7 @@ from preprocess_text.document import Document
 from model.overall_runner import corpus_to_day_features
 from preprocess_text.corpus import Corpus
 from operator import add
+from collections import defaultdict
 app = Flask(__name__, static_url_path='')
 CORS(app)
 sentiment_corpus = None
@@ -40,6 +41,7 @@ approval_ratings = {}
 features_by_day = {}
 features_by_range = {}
 clients = {}
+articles_for_day = defaultdict(list)
 
 def init_server():
     global labels
@@ -47,6 +49,7 @@ def init_server():
     global features_by_range
     global approval_ratings
     global features_by_day
+    global articles_for_day
     print('Initializing server')
     approval_ratings, political_article_corpora = Runner.init_corpora()
     features_by_day = Runner.corpora_to_day_features(political_article_corpora)
@@ -61,6 +64,15 @@ def init_server():
         labels = pickle.load(f)
     print('Done.')
 
+    print('Loading historical articles...')
+    nyt_article_archive = json.load(open('../data/NYT_Articles_October_1998.json', 'rb'))
+    article_list = nyt_article_archive['response']['docs']
+    for article in article_list:
+        article_date = parse(article['pub_date'])
+        articles_for_day[article_date.day].append({
+            'headline': article['headline']['main'],
+            'content': article['lead_paragraph']
+        })
 
 @app.route('/')
 def index():
@@ -282,6 +294,14 @@ def register():
      'Registered ID: ' + str(data['id']), 200)
     return ('NO ID FOUND', 400)
 
+@app.route('/news/<int:year>/<int:month>/<int:day>', methods=['GET'])
+def fetch_news(year, month, day):
+    if year != 1998:
+        return ('INVALID YEAR', 400)
+    elif month != 10:
+        return ('INVALID MONTH', 400)
+    else:
+        return jsonify(articles_for_day[day])
 
 if __name__ == '__main__':
     init_server()

@@ -11,10 +11,14 @@ class FacialExpression {
 class Article {
     articleDate: Date;
     articleText: string;
+    articleHeadline: string;
+    selectedForAnalysis: boolean;
 
-    constructor(public text: string, public date: Date) {
+    constructor(public text: string, public date: Date, public headline="") {
         this.articleText = text;
         this.articleDate = date;
+        this.articleHeadline = headline;
+        this.selectedForAnalysis = false;
     }
 }
 
@@ -43,7 +47,7 @@ class StateOfTheMediaController {
         this.$http = $http;
 
         // default date for demo
-        this.$scope.articleDate = new Date(2016, 8, 21);
+        this.$scope.articleDate = new Date(1998, 09, 21);
 
         // check to see if our cookie exists in the browser already
         if (!$cookies.get(this.SESSION_KEY_NAME)) {
@@ -78,10 +82,11 @@ class StateOfTheMediaController {
         });
     }
 
-    private articlesPerDay:  { [day: string]: Article[] } = {};
+    public currentDelta: number = -1;
+    public articlesSelectedForAnalysisIndices: { [day: string]: number[] } = {};
+    public articlesSelectedForAnalysis:  { [day: string]: Article[] } = {};
+    public articlesPerDay: { [day: string]: Article[] } = {};
     private sentimentPerDay: { [day: string]: number } = {};
-
-    public selectedArticle;
 
     private possibleExpressions: { [name: string]: FacialExpression } = {
         "Really Happy": new FacialExpression("Really Happy", "./img/ReallyHappy.jpg"),
@@ -106,6 +111,47 @@ class StateOfTheMediaController {
         day: "numeric"
     };
 
+    public getArticlesForDate = function(date: Date)
+    {
+        var dateStr = date.toDateString();
+        var articlesForDate = this.articlesPerDay[dateStr];
+        if (articlesForDate !== undefined) {
+            return;
+        }
+
+        let controller = this;
+        console.log(date.getDate());
+        var articleUrl = this.API_HOST_URL + ':' + this.API_PORT + '/news/' + 
+                         date.getFullYear() + '/' + 
+                         (date.getMonth() + 1) + '/' + 
+                         date.getDate();
+        this.$http({
+            'method': 'GET',
+            url: articleUrl
+        }).then(function success(response) {
+            let articlesRaw = angular.fromJson(response.data);
+            var articleList = [];
+            articlesRaw.forEach(function (article) {
+                articleList.push(new Article(article.content, date, article.headline));
+            });
+            controller.articlesPerDay[dateStr] = articleList;
+            controller.currentDelta = Math.ceil(articleList.length / 3);
+        }, function error(response) {
+            console.error("unable to get articles for selected date");
+            console.log(response);
+        });
+    }
+
+    public getArticleColumn = function (index: number, date: Date) {
+        var articleList = this.articlesPerDay[date.toDateString()];
+        if (articleList === undefined)
+        {
+            return [];
+        }
+        var articleSubset = articleList.slice(index * this.currentDelta, (index + 1) * this.currentDelta);
+        return articleSubset;
+    };
+
     public getApprovalRatings = function(date: Date) {
         let controller = this;
         let args = {"date": date.toDateString()};
@@ -120,32 +166,82 @@ class StateOfTheMediaController {
             });
     };
 
-    public addArticle = function (content: string, date: Date)
+    public addArticleIndex = function (index: number, date: Date)
     {
-        if ("undefined" === typeof content) {
+        let dateStr = date.toDateString();
+        var articleIndicesForDay = this.articlesSelectedForAnalysisIndices[dateStr];
+        if (articleIndicesForDay === undefined)
+        {
+            articleIndicesForDay = [ index ];
+            this.articlesSelectedForAnalysisIndices[dateStr] = articleIndicesForDay;
+            this.updateAnalysis(date);
+            this.articlesPerDay[dateStr][index].selectedForAnalysis = true;
+        } else if (articleIndicesForDay.indexOf(index) === -1)
+        {
+            articleIndicesForDay.push(index);
+            this.updateAnalysis(date);
+            this.articlesPerDay[dateStr][index].selectedForAnalysis = true;
+        }
+    }
+
+    public removeArticleIndex = function (index: number, date: Date)
+    {
+        let dateStr = date.toDateString();
+        var articleIndicesForDay = this.articlesSelectedForAnalysisIndices[dateStr];
+        if (articleIndicesForDay !== undefined)
+        {
+            var indexToRemove = articleIndicesForDay.indexOf(index);
+            if (indexToRemove > -1)
+            {
+                articleIndicesForDay.splice(indexToRemove, 1);
+                this.updateAnalysis(date);
+                this.articlesPerDay[dateStr][index].selectedForAnalysis = false;
+            }
+        }
+    };
+
+    private updateAnalysis = function (date: Date)
+    {
+        let dateStr = date.toDateString();
+        console.log("updating analysis for day's news");
+        var articlesToAnalyze = [];
+        var articleIndices = this.articlesSelectedForAnalysisIndices[dateStr];
+        if (articleIndices.length === 0)
+        {
+            this.approvalRatingPredicted[dateStr] = undefined;
             return;
         }
-
-        var newArticle = new Article(content, date);
-        var dateStr = date.toDateString();
-        var articleSetForDate = this.articlesPerDay[dateStr];
-        if (articleSetForDate === undefined)
-        {
-            articleSetForDate = [ newArticle ];
-            this.articlesPerDay[dateStr] = articleSetForDate;
-        } else {
-            articleSetForDate.push(newArticle);
-        }
-        this.totalArticles++;
-        console.log("updating analysis for day's news");
+        for (var i = 0; i < articleIndices.length; i++) {
+            articlesToAnalyze.push(this.articlesPerDay[dateStr][articleIndices[i]]);
+        };
+        this.articlesSelectedForAnalysis[dateStr] = articlesToAnalyze;
         this.fetchSentimentMeasurement(date);
         this.fetchTopicMeasurement(date);
         this.fetchApprovalRatingPredictions(date);
     };
 
+    // public addArticle = function (content: string, date: Date)
+    // {
+    //     if ("undefined" === typeof content) {
+    //         return;
+    //     }
+
+    //     var newArticle = new Article(content, date);
+    //     var dateStr = date.toDateString();
+    //     var articleSetForDate = this.articlesSelectedForAnalysis[dateStr];
+    //     if (articleSetForDate === undefined)
+    //     {
+    //         articleSetForDate = [ newArticle ];
+    //         this.articlesSelectedForAnalysis[dateStr] = articleSetForDate;
+    //     } else {
+    //         articleSetForDate.push(newArticle);
+    //     }
+    //     this.totalArticles++;
+    // };
+
     public fetchSentimentMeasurement = function (date: Date) {
         var dateStr = date.toDateString();
-        var articlesToAnalyze = this.articlesPerDay[dateStr];
+        var articlesToAnalyze = this.articlesSelectedForAnalysis[dateStr];
         if (articlesToAnalyze === undefined)
         {
             return;
@@ -175,7 +271,7 @@ class StateOfTheMediaController {
 
     public fetchTopicMeasurement = function (date: Date) {
         var dateStr = date.toDateString();
-        var articlesToAnalyze = this.articlesPerDay[dateStr];
+        var articlesToAnalyze = this.articlesSelectedForAnalysis[dateStr];
         if (articlesToAnalyze === undefined)
         {
             return;
@@ -208,7 +304,7 @@ class StateOfTheMediaController {
     public fetchApprovalRatingPredictions = function (date)
     {
         var dateStr = date.toDateString();
-        var articlesToAnalyze = this.articlesPerDay[dateStr];
+        var articlesToAnalyze = this.articlesSelectedForAnalysis[dateStr];
         if (articlesToAnalyze === undefined)
         {
             return;

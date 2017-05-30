@@ -11,70 +11,112 @@
         <h1 class="text-center">Welcome to State Of The Media</h1>
     </div>
     <div class="row">
-        <div class="col-md-8">
-            <h2>Add articles for analysis</h2>
-            <form>
-                <div class="form-group">
-                    <label>
-                        Specify date article was published:
-                        <input type="date"
-                            ng-model="articleDate"></input>
-                    </label>
-                    <textarea name=""
-                            id="article-text"
-                            rows="10"
-                            class="form-control"
-                            placeholder="Paste the contents of a news article here"
-                            ng-model="articleContent"></textarea>
+        <h2>Articles for day<br><br></h2>
+        <p>Select day to analyze:</p>
+        <input type="date"
+               ng-model="articleDate"
+               ng-change="MainController.getArticlesForDate(articleDate)"></input>
+        <p data-ng-show="MainController.articlesPerDay[articleDate.toDateString()] === undefined">
+            There are no articles available for {{ articleDate.toLocaleDateString('en-US', MainController.dateFormattingOptions) }}
+        </p>
+        <div style="height: 600px; overflow-y: scroll">
+            <div class="col-md-4">
+                <div>
+                    <div class="panel panel-default"
+                        data-ng-class="{ 'panel-success': article.selectedForAnalysis }"
+                        data-ng-repeat="article in MainController.getArticleColumn(0, articleDate) track by $index"
+                        id="news-article-{{ $index }}">
+                        <div class="panel-heading">Article {{ $index }}
+                            <button data-ng-click="MainController.removeArticleIndex($index, articleDate)" type="button" class="close" aria-label="Remove from Analysis">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                            <button data-ng-click="MainController.addArticleIndex($index, articleDate)" style="margin-right: 5px;" type="button" class="close" aria-label="Add from Analysis">
+                                <span aria-hidden="true">&plus;</span>
+                            </button>
+                        </div>
+                        <div class="panel-body">
+                            <p><strong>{{ article.headline }}</strong></p>
+                            <p>{{ article.articleText }}</p>
+                        </div>
+                    </div>
                 </div>
-                <button type="button"
-                        class="btn btn-success"
-                        ng-click="MainController.addArticle(articleContent, articleDate)">Add Article
-                </button>
-                <button type="button"
-                        class="btn btn-success"
-                        ng-click="MainController.getApprovalRatings(articleDate)">Get Approval Ratings
-                </button>
-            </form>
-        </div>
-        <div class="col-md-4" style="height: 500px; overflow-y: scroll">
-            <h2><br>Articles for day</h2>
-            <p data-ng-show="MainController.approvalRatingPredicted[articleDate.toDateString()] === undefined">
-                You have not added any articles for {{ articleDate.toLocaleDateString('en-US', MainController.dateFormattingOptions) }} yet!
-            </p>
-            <div class="panel panel-default" data-ng-repeat="article in MainController.articlesPerDay[articleDate.toDateString()] track by $index">
-                <div class="panel-heading">Article {{ $index }}</div>
-                <div class="panel-body"><strong>Article text: </strong>{{ article.articleText }}</div>
+            </div>
+            <div class="col-md-4">
+                <div>
+                    <div class="panel panel-default"
+                        data-ng-class="{ 'panel-success': article.selectedForAnalysis }"
+                        data-ng-repeat="article in MainController.getArticleColumn(1, articleDate) track by $index"
+                        id="news-article-{{ ($index + MainController.currentDelta) }}">
+                        <div class="panel-heading">Article {{ ($index + MainController.currentDelta) }}
+                            <button ng-click="MainController.removeArticleIndex(($index + MainController.currentDelta), articleDate)" type="button" class="close" aria-label="Remove from Analysis">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                            <button ng-click="MainController.addArticleIndex(($index + MainController.currentDelta), articleDate)" style="margin-right: 5px;" type="button" class="close" aria-label="Add from Analysis">
+                                <span aria-hidden="true">&plus;</span>
+                            </button>
+                        </div>
+                        <div class="panel-body">
+                            <p><strong>{{ article.headline }}</strong></p>
+                            <p>{{ article.articleText }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div>
+                    <div class="panel panel-default"
+                        data-ng-class="{ 'panel-success': article.selectedForAnalysis }"
+                        data-ng-repeat="article in MainController.getArticleColumn(2, articleDate) track by $index"
+                        id="news-article-{{ ($index + 2 * MainController.currentDelta) }}">
+                        <div class="panel-heading">Article {{ ($index + 2 * MainController.currentDelta) }}
+                            <button ng-click="MainController.removeArticleIndex(($index + 2 * MainController.currentDelta), articleDate)" type="button" class="close" aria-label="Remove from Analysis">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                            <button ng-click="MainController.addArticleIndex(($index + 2 * MainController.currentDelta), articleDate)" style="margin-right: 5px;" type="button" class="close" aria-label="Add from Analysis">
+                                <span aria-hidden="true">&plus;</span>
+                            </button>
+                        </div>
+                        <div class="panel-body">
+                            <p><strong>{{ article.headline }}</strong></p>
+                            <p>{{ article.articleText }}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="row" data-ng-hide="MainController.approvalRatingPredicted[articleDate.toDateString()] === undefined">
+    <div class="row">
         <h2 class="text-center" class="ng-cloak">Analysis of News for {{ articleDate.toLocaleDateString('en-US',
             MainController.dateFormattingOptions) }}</h2>
-        <div class="col-md-6">
-            <h3 class="text-center">Sentiment Analysis</h3>
-            <p class="ng-cloak">Today's news is <strong>{{ MainController.currentExpression[articleDate.toDateString()].expressionName }}</strong>.
-            </p>
-            <img ng-src="{{ MainController.currentExpression[articleDate.toDateString()].imgPath }}"
-                 alt="{{ MainController.currentExpression[articleDate.toDateString()].expressionName }}"
-                 ng-show="MainController.showExpression"
-                 class="ng-cloak center-block img-responsive"/>
+        <div data-ng-show="MainController.approvalRatingPredicted[articleDate.toDateString()] === undefined">
+            <p>No articles have been selected for analysis yet.</p>
         </div>
-        <div class="col-md-6">
-            <h3 class="text-center">News Analysis</h3>
-            <canvas id="radar" class="chart chart-radar"
-                    chart-colors="['rgba(66,179,244,0.4)']"
-                    chart-data="MainController.topicStrengths[articleDate.toDateString()]"
-                    chart-labels="MainController.topicLabels[articleDate.toDateString()]">
-            </canvas>
-        </div>
-        <div class="col-md-6">
-            <h3 class="text-center">Predictions</h3>
-            <ul>
-                <li>
-                    Predicted approval rating: {{ MainController.approvalRatingPredicted[articleDate.toDateString()] + "%" }}
-                </li>
-            </ul>
+        <div data-ng-hide="MainController.approvalRatingPredicted[articleDate.toDateString()] === undefined">
+            <div class="col-md-4">
+                <h3 class="text-center">Sentiment Analysis</h3>
+                <p class="ng-cloak">Today's news is <strong>{{ MainController.currentExpression[articleDate.toDateString()].expressionName }}</strong>.
+                </p>
+                <img ng-src="{{ MainController.currentExpression[articleDate.toDateString()].imgPath }}"
+                    alt="{{ MainController.currentExpression[articleDate.toDateString()].expressionName }}"
+                    ng-show="MainController.showExpression"
+                    class="ng-cloak center-block img-responsive"/>
+            </div>
+            <div class="col-md-4">
+                <h3 class="text-center">News Analysis</h3>
+                <canvas id="radar" class="chart chart-radar"
+                        chart-colors="['rgba(66,179,244,0.4)']"
+                        chart-data="MainController.topicStrengths[articleDate.toDateString()]"
+                        chart-labels="MainController.topicLabels[articleDate.toDateString()]">
+                </canvas>
+            </div>
+            <div class="col-md-4">
+                <h3 class="text-center">Predictions</h3>
+                <ul>
+                    <li>
+                        Predicted approval rating: {{ MainController.approvalRatingPredicted[articleDate.toDateString()] + "%" }}
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>
