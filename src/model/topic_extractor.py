@@ -2,6 +2,7 @@
 
 from util.topic_matchers import hand_selected_topic_labels as topic_labels, hand_selected_label_index as label_index
 from nltk.stem.lancaster import LancasterStemmer
+import nmf_topic_extraction as NMF
 
 def manual_topic_vectorize(text):
     count_result = manual_count_signal_words(__pre_process_text(text))
@@ -11,7 +12,7 @@ def manual_topic_vectorize(text):
     return output_vector
 
 def manual_one_hot_topic_vectorize(text):
-    count_result = _count_signal_words(__pre_process_text(text))
+    count_result = manual_count_signal_words(__pre_process_text(text))
     output_vector = count_result[0]
     num_signals = count_result[1]
     max_indx = __max_indx(output_vector)
@@ -21,11 +22,29 @@ def manual_one_hot_topic_vectorize(text):
              output_vector[indx] = 0.0 # zero out the secondary topic labels
     return output_vector
 
+def nmf_topic_vectorize(text):
+    nmf, feature_names = NMF.load_model_from_disk(NMF.get_nmf_filepath(), NMF.get_features_filepath())
+    text_parse = NMF.LemmaTokenizer()
+    tokens = text_parse(text)
+    topics = nmf.components_
+    print(topics.shape)
+    output_vector = [0.0] * len(topics)
+    signal_count = 0
+    for token in tokens:  
+        if token in feature_names:
+            word_index = feature_names.index(token)
+            print(token)
+            signal_count += 1
+            for topic_index, topic in enumerate(topics):
+                output_vector[topic_index] += topic[word_index]
+    print("We hit " + str(signal_count) + " words")
+    return output_vector
+            
 # returns a list of all words in the text
 def __pre_process_text(text):
     return text.split()
 
-# returns a tuple of the non-normalized vector and the total count of signal words
+# turns a tuple of the non-normalized vector and the total count of signal words
 def manual_count_signal_words(words, count_stems=True):
     output = [0.0] * len(label_index.keys())
 
@@ -82,5 +101,6 @@ def _normalize(vector, total):
 
 if __name__ == "__main__": # used for basic testing
     test_phrase = "Barack Obama has pursued the most aggressive 'war on leaks' since the Nixon administration, according to a report published on Thursday that says the administration's attempts to control the flow of information is hampering the ability of journalists to do their jobs. The author of the study, the former Washington Post executive editor Leonard Downie, says the administration's actions have severely hindered the release of information that could be used to hold it to account."
-    print(topic_vectorize(test_phrase))
-    print(one_hot_topic_vectorize(test_phrase))
+    #print(manual_topic_vectorize(test_phrase))
+    #print(manual_one_hot_topic_vectorize(test_phrase))
+    print(nmf_topic_vectorize(test_phrase))
