@@ -2,19 +2,25 @@
 import glob
 from time import time
 from preprocess_text import corpus
+#from util.config import Config
+# REMOVING THE ABOVE IMPORT DUE TO CIRCULAR DEPENDENCIES
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import NMF, LatentDirichletAllocation
 from nltk import word_tokenize          
 from nltk.stem import WordNetLemmatizer 
+import os
 import re
 import pickle
 
 NYT_CORPUS_PATH = '/opt/nlp_shared/corpora/NytCorpora/NYTCorpus/'
+NMF_MODEL_FILENAME = 'NMF_MODEL'
+FEATURES_FILENAME = 'NMF_FEATURES'
+TOPIC_CACHE_DIR = '/opt/nlp_shared/topic_models/'
 
 # Compute topics for Bill Clinton's terms
-YEARS = range(1993, 2002)
+YEARS = range(1993, 1998)
 
-N_FEATURES = 1000
+N_FEATURES = 5000
 N_TOPICS = 100
 N_TOP_WORDS = 100
 
@@ -26,8 +32,10 @@ class LemmaTokenizer(object):
         def __call__(self, doc):
             output = []
             for t in word_tokenize(doc):
-                if re.match('[^a-zA-Z]+', t):
-                    output.append(self.wnl.lemmatize(t))
+                t = self.wnl.lemmatize(t)
+                if re.match('[^a-zA-Z]+', t) is None:
+                    output.append(t)
+            return output
 
 def get_top_words(model, feature_names, n=0):
     topics = []
@@ -41,10 +49,18 @@ def get_top_words(model, feature_names, n=0):
     topics.append(words_for_topic_filtered)
     return topics 
 
+# returns default nmf model absolute filepath
+def get_nmf_filepath():
+    return os.path.join(TOPIC_CACHE_DIR, NMF_MODEL_FILENAME)
+
+# returns default feature vector absolute filepath
+def get_features_filepath():
+    return os.path.join(TOPIC_CACHE_DIR, FEATURES_FILENAME)
+
 # returns an nmf_model given a corpora
 def build_nmf_model(corpora, num_features=N_FEATURES, num_topics=N_TOPICS):
     dataset = []
-    for date, corpus_for_day in corpora.items():
+    for corpus_for_day in corpora:
         for article in corpus_for_day:
             dataset.append('\n'.join(article.sents))
 
@@ -57,13 +73,13 @@ def build_nmf_model(corpora, num_features=N_FEATURES, num_topics=N_TOPICS):
     tfidf_feature_names = tfidf_vectorizer.get_feature_names()
     return (nmf, tfidf_feature_names)
 
-def write_model_to_disk(nmf_file_name, features_file_name, num_features=N_FEATURES, num_topics=N_TOPICS):
+def write_model_to_disk(corpora, nmf_file_name, features_file_name, num_features=N_FEATURES, num_topics=N_TOPICS):
     nmf, feature_names = build_nmf_model(corpora, num_features, num_topics)
-    pickle.dump(feature_names, features_file_name)
-    pickle.dump(nmf, nmf_file_name)
+    pickle.dump(feature_names, open(features_file_name, "wb"))
+    pickle.dump(nmf, open(nmf_file_name, "wb"))
 
 def load_model_from_disk(nmf_file_name, features_file_name):
-    return (pickle.load(nmf_file_name), pickle.load(features_file_name))
+    return (pickle.load(open(nmf_file_name, "rb")), pickle.load(open(features_file_name, "rb")))
     
 if __name__ == '__main__':
     for year in YEARS:
@@ -77,7 +93,7 @@ if __name__ == '__main__':
 
         corpora_all += corpora_for_year
 
-    dataset = []
+    """dataset = []
     for corpus_for_day in corpora_all:
         for article in corpus_for_day:
             dataset.append('\n'.join(article.sents))
@@ -112,6 +128,9 @@ if __name__ == '__main__':
               alpha=.1, l1_ratio=.5).fit(tfidf)
     print("done in %0.3fs." % (time() - t0))
 
-    print("\nTopics in NMF model:")
-    tfidf_feature_names = tfidf_vectorizer.get_feature_names()
-    get_top_words(nmf, tfidf_feature_names, N_TOP_WORDS)
+    #print("\nTopics in NMF model:")
+    tfidf_feature_names = tfidf_vectorizer.get_feature_names()"""
+    print("Saving model to disk...")
+    write_model_to_disk(corpora_all, get_nmf_filepath(), get_features_filepath())
+    print("Done.")
+    #get_top_words(nmf, tfidf_feature_names, N_TOP_WORDS)

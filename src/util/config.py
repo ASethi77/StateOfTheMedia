@@ -12,7 +12,7 @@ from enum import Enum, IntEnum
 from functools import partial
 
 from model.sentiment_analysis import get_doc_sentiment_by_words, load_mpqa_sentiment_corpus
-from model.topic_extractor import manual_topic_vectorize, manual_one_hot_topic_vectorize
+from model.topic_extractor import manual_topic_vectorize, manual_one_hot_topic_vectorize, nmf_topic_vectorize
 from util.topic_matchers import hand_selected_topic_labels, hand_selected_label_index
 
 class Paths(Enum):
@@ -34,6 +34,7 @@ class SentimentAnalysisMethod(Enum):
 class TopicExtractionMethod(Enum):
     MANUAL_TOPIC_EXTRACTION_MIXTURE = partial(lambda text: manual_topic_vectorize(text))
     MANUAL_TOPIC_EXTRACTION_ONE_HOT = partial(lambda text: manual_one_hot_topic_vectorize(text))
+    #NMF_TOPIC_EXTRACTION_MIXTURE = partial(lambda text: nmf_topic_vectorize(text))    
 
     def __str__(self):
         return self.name
@@ -70,6 +71,7 @@ class Config():
     NUM_TOPICS = len(hand_selected_label_index.keys())
 
     FEATURE_CACHE_DIR = os.environ.get("FEATURE_CACHE_DIR", "/opt/nlp_shared/analysis_cache/")
+    TOPIC_CACHE_DIR = os.environ.get("TOPIC_CACHE_DIR", "/opt/nlp_shared/topic_models/")
 
     # Regression model selection configuration params
     # -----------------------------------------------
