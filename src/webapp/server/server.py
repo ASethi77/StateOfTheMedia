@@ -144,24 +144,23 @@ def get_sentiment():
     return jsonify({'sentiment': sentiment_ratio})
 
 
-@app.route('/model/sentimentList', methods=['POST'])
+@app.route('/model/sentimentForDay', methods=['POST'])
 def get_sentiment_list():
+    print("SENTIMENT ANALYSIS CALLED")
     data = json.loads(request.data.decode('utf-8'))
     client_id = data['id']
-    article_indices = data['indices']
+    article_day = data['day']
+    article_list = data['articles']
     if client_id not in clients.keys():
         return ('No record for id: ' + str(client_id), 400)
-    articles = clients[client_id]['articles']
     sentiment_ratio_day = 0.0
-    for article_idx in article_indices:
-        if article_idx >= len(articles) or article_idx < 0:
-            return ('No article for given index: ' + str(article_index), 400)
-        text = articles[article_idx]
+    for article in article_list:
+        text = article['articleText']
         tokens = word_tokenize(text)
         sentiment_ratio = Config.SENTIMENT_ANALYSIS_METHOD.value(tokens)
         sentiment_ratio_day += sentiment_ratio
 
-    sentiment_ratio_day /= len(article_indices)
+    sentiment_ratio_day /= len(article_list)
     return jsonify({'sentiment': sentiment_ratio_day})
 
 
@@ -180,19 +179,18 @@ def get_topic():
     return jsonify({'topics': topics})
 
 
-@app.route('/model/topicList', methods=['POST'])
+@app.route('/model/topicMixtureForDay', methods=['POST'])
 def get_topic_list():
+    print("TOPIC ANALYSIS CALLED")
     data = json.loads(request.data.decode('utf-8'))
     client_id = data['id']
-    article_indices = data['indices']
+    article_day = data['day']
+    article_list = data['articles']
     if client_id not in clients.keys():
         return ('No record for id: ' + str(client_id), 400)
-    articles = clients[client_id]['articles']
     topic_mixtures = None
-    for article_index in article_indices:
-        if article_index >= len(articles):
-            return ('No article for given index: ' + str(article_index), 400)
-        text = articles[article_index]
+    for article in article_list:
+        text = article['articleText']
         tokens = word_tokenize(text)
         topics = Config.TOPIC_EXTRACTION_METHOD.value(' '.join(tokens))
         if topic_mixtures is None:
@@ -205,10 +203,11 @@ def get_topic_list():
         topic_mixtures[topic_idx] /= len(topic_mixtures)
 
     return jsonify(
-            {
-                'topicStrengths': topic_mixtures,
-                'topicLabels': ['World Leaders', 'Countries', 'Politics', 'Economics', 'Foreign', 'Social', 'Environment']
-            })
+        {
+            'topicStrengths': topic_mixtures,
+            'topicLabels': ['World Leaders', 'Countries', 'Politics',
+                            'Economics', 'Foreign', 'Social', 'Environment']
+        })
 
 
 @app.route('/model/history', methods=['GET'])
@@ -236,38 +235,41 @@ def get_prediction_history():
 
 @app.route('/model/predict', methods=['POST'])
 def get_predict():
+    print("PREDICT CALLED")
+    if model is None:
+        return ('No model loaded', 400)
+
     data = json.loads(request.data.decode('utf-8'))
     client_id = data['id']
     if client_id not in clients.keys():
         return ('No client found for id: ' + str(client_id), 400)
-    articles = clients[data['id']]['articles']
+    article_day = data['day']
+    article_list = data['articles']
     total_sentiment = 0.0
     total_topics = None
     article_count = 0
-    for index in data['articles']:
-        if index < len(articles) and index >= 0:
-            text = articles[index]
-            tokens = word_tokenize(text)
-            doc_topics = Config.TOPIC_EXTRACTION_METHOD.value(text)
-            doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value(text)
-            total_sentiment += doc_sentiment
-            if total_topics is None:
-                total_topics = doc_topics
-            else:
-                for i in range(len(total_topics)):
-                    total_topics[i] += doc_topics[i]
-            article_count += 1
+    for article in article_list:
+        text = article['articleText']
+        tokens = word_tokenize(text)
+        doc_topics = Config.TOPIC_EXTRACTION_METHOD.value(text)
+        doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value(text)
+        total_sentiment += doc_sentiment
+        if total_topics is None:
+            total_topics = doc_topics
+        else:
+            for i in range(len(total_topics)):
+                total_topics[i] += doc_topics[i]
+        article_count += 1
 
     for i in range(len(total_topics)):
         total_topics[i] = total_topics[i] / article_count
 
     total_sentiment = total_sentiment / article_count
-    if model is not None:
-        features = total_topics + [ total_sentiment ]
-        output = model.predict(features)
-        print(output)
-        return jsonify({'prediction': output[0].tolist()[0]})
-    return ('No model loaded', 400)
+
+    features = total_topics + [total_sentiment]
+    output = model.predict(features)
+    print(output)
+    return jsonify({'prediction': output[0].tolist()[0]})
 
 
 @app.route('/register', methods=['POST'])
