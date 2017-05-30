@@ -44,73 +44,109 @@ def doc_to_text(doc, max_sentences=-1):
     return sentences
 
 def corpus_to_day_features(date, corpus_for_day, output):
+    print("Starting build for date: " + str(date))
     topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME, Config.TOPIC_EXTRACTION_METHOD.name])
+    one_hot_topic_extraction_cache_filename = "_".join([str(date), Config.CORPUS_NAME, Config.SENTIMENT_ANALYSIS_METHOD.name, "ONE_HOT"])
     sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME, Config.SENTIMENT_ANALYSIS_METHOD.name])
+    one_hot_sentiment_analysis_cache_filename = "_".join([str(date), Config.CORPUS_NAME, Config.SENTIMENT_ANALYSIS_METHOD.name, "ONE_HOT"]) # gives the sentiment to the most relevant topic per doc
 
     topic_extraction_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR, topic_extraction_cache_filename)
     sentiment_analysis_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR, sentiment_analysis_cache_filename)
+    one_hot_topic_extraction_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR, one_hot_topic_extraction_cache_filename)
+    one_hot_sentiment_analysis_cache_filename = os.path.join(Config.FEATURE_CACHE_DIR, one_hot_sentiment_analysis_cache_filename)
 
     topics_precomputed = os.path.exists(topic_extraction_cache_filename)
+    one_hot_topics_precomputed = os.path.exists(one_hot_topic_extraction_cache_filename)
     sentiments_precomputed = os.path.exists(sentiment_analysis_cache_filename)
+    one_hot_sentiments_precomputed = os.path.exists(one_hot_sentiment_analysis_cache_filename)
 
-    day_feature_vector = [0.0] * (Config.NUM_TOPICS + 1) # features are topic labels plus sentiment value
-    day_sentiments = 0
+    day_feature_vector = [0.0] * (2 * Config.NUM_TOPICS) # features are topic labels plus sentiment for each topic
+    day_sentiments = [0.0] * (Config.NUM_TOPICS)
+    one_hot_day_sentiments = [0.0] * (Config.NUM_TOPICS)
     day_topics = [0.0] * (Config.NUM_TOPICS)
+    one_hot_day_topics = [0.0] * (Config.NUM_TOPICS)
 
-    if topics_precomputed:
+    if topics_precomputed and not Config.OVERWRITE:
         #print("Loading topics from cache...")
         day_topics = pickle.load(open(topic_extraction_cache_filename, "rb"))
 
-    if sentiments_precomputed:
+    if sentiments_precomputed and not Config.OVERWRITE:
         #print("Loading sentiments from cache...")
         day_sentiments = pickle.load(open(sentiment_analysis_cache_filename, "rb"))
 
-    t0_day = current_milli_time() 
-    if not topics_precomputed or not sentiments_precomputed:
-        #print("Computing feature vectors...")
+    if one_hot_topics_precomputed and not Config.OVERWRITE:
+        one_hot_day_topics = pickle.load(open(one_hot_topic_extraction_cache_filename, "rb"))
+    
+    if one_hot_sentiments_precomputed and not Config.OVERWRITE:
+        one_hot_day_sentiments = pickle.load(open(one_hot_sentiment_analysis_cache_filename, "rb"))
+
+    if not topics_precomputed or not sentiments_precomputed or Config.OVERWRITE:
         doc_num = 0
         for doc in corpus_for_day:
-            t0_doc = current_milli_time()
             doc_num += 1
-            
-            if not topics_precomputed:
-                doc_topic = Config.TOPIC_EXTRACTION_METHOD.value(doc_to_text(doc, max_sentences=3))
-                for indx in range(len(doc_topic)):
-                    day_topics[indx] += doc_topic[indx]
+            doc_topic = []
+            doc_sentiment = []
+            identifying_topic = -1 #which index is the topic which the article identifies with the most 
+            print("Computing doc # " + str(doc_num))
+            if not topics_precomputed or Config.OVERWRITE:
+                doc_topic = Config.TOPIC_EXTRACTION_METHOD.value(doc_to_text(doc, max_sentences=Config.MAX_SENTENCES))
+                max_topic_val = -1.0
+                for i in range(len(doc_topic)):
+                    day_topics[i] += doc_topic[i]
+                    if doc_topic[i] > max_topic_val and doc_topic[i] > 0.0:
+                        indentifying_topic = i
+                        max_topic_val = doc_topic[i]
+                one_hot_day_topics[identifying_topic] += 1.0
+                    
 
-            if not sentiments_precomputed:
+            if not sentiments_precomputed or Config.OVERWRITE:
                 doc_sentiment = Config.SENTIMENT_ANALYSIS_METHOD.value(doc)
-                day_sentiments += doc_sentiment
-
-            t1_doc = current_milli_time()
-
-    if not topics_precomputed:
+                for i in range(len(day_sentiments)):
+                    day_sentiments[i] += doc_sentiment * 1.0 * doc_topic[i]
+                one_hot_day_sentiments[identifying_topic] += doc_sentiment * 1.0
+            print("Finished doc #" + str(doc_num))
+    if not topics_precomputed or Config.OVERWRITE:
         for i in range(len(day_topics)):
-            day_topics[i] = day_topics[i] / len(corpus_for_day) # normalize our features
-
-    if not sentiments_precomputed:
-        day_sentiments /= float(len(corpus_for_day))
-
-    t1_day = current_milli_time()
-    output[date] = day_topics + [ day_sentiments ]
-   
-    if not topics_precomputed: 
+            day_topics[i] = day_topics[i] / len(corpus_for_day)
+ 
         pickle.dump(day_topics, open(topic_extraction_cache_filename, "wb"))
 
-    if not sentiments_precomputed:
+    if not sentiments_precomputed or Config.OVERWRITE:
+        for i in range(len(day_sentiments)):
+            day_sentiments[i] = day_sentiments[i] / len(corpus_for_day)
+
         pickle.dump(day_sentiments, open(sentiment_analysis_cache_filename, "wb"))
 
+    if not one_hot_topics_precomputed or Config.OVERWRITE:
+        for i in range(len(one_hot_day_topics)):
+            one_hot_day_topics[i] = one_hot_day_topics[i] / len(corpus_for_day)
 
+        pickle.dump(one_hot_day_topics, open(one_hot_topic_extraction_cache_filename, "wb"))
+
+    if not one_hot_sentiments_precomputed or Config.OVERWRITE:
+        for i in range(len(one_hot_day_sentiments)):
+            one_hot_day_sentiments[i] = one_hot_day_sentiments[i] / len(corpus_for_day)
+
+        pickle.dump(one_hot_day_sentiments, open(one_hot_sentiment_analysis_cache_filename, "wb"))
+    
+    for i in range(Config.NUM_TOPICS):
+        day_feature_vector[2 * i] = day_topics[i]
+        day_feature_vector[2 * i + 1] = day_sentiments[i]
+
+    output[date] = day_feature_vector        
+    print("Finished date: " + str(date))
 # run topic extraction/sentiment analysis on the corpora
 # to build feature vectors per day
 # we expect corpora to be a map of {datetime: corpus}
 def corpora_to_day_features(corpora):
     output = {}
-    threadpool = ThreadPool(4)
+    for date, corpus_for_day in corpora.items():
+        corpus_to_day_features(date, corpus_for_day, output)
+    """threadpool = ThreadPool(4)
     arg_list = [(item[0], item[1], output) for item in corpora.items()]
     threadpool.starmap(corpus_to_day_features, arg_list)
     threadpool.close()
-    threadpool.join()
+    threadpool.join()"""
     return output
 
 def init_corpora():
@@ -131,7 +167,7 @@ def init_corpora():
 def combine_day_ranges(features_by_day):
     output = {}
     for date, features in features_by_day.items():
-        range_features = [0.0] * (Config.NUM_TOPICS + 1)
+        range_features = [0.0] * (2 * Config.NUM_TOPICS)
         days_with_data = 0 # count how many days in this range actually provided us data
         # TODO: this might be biased since days with different # of articles are weighted the same
         for i in range(0, Config.DAY_RANGE):
@@ -200,8 +236,20 @@ if __name__ == '__main__':
     X, Y = match_features_to_labels(features_by_range, approval_ratings)
 
     print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X))) 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=Config.TRAINING_PARTITION)
-
+    X_train = []
+    X_test = []
+    Y_train = []
+    Y_test = []
+    
+    if not Config.TRAIN_TEST_CONSECUTIVE:
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=Config.TRAINING_PARTITION)
+    else:
+        num_training_points = int(1 - Config.TRAINING_PARTITION * len(X))
+        X_train = X[:num_training_points]
+        X_test = X[num_training_points:]
+        Y_train = Y[:num_training_points]
+        Y_test = Y[num_training_points:]
+    
     # setup model and configurations
     model = None
     model_type = ""

@@ -27,17 +27,14 @@ def nmf_topic_vectorize(text):
     text_parse = NMF.LemmaTokenizer()
     tokens = text_parse(text)
     topics = nmf.components_
-    print(topics.shape)
     output_vector = [0.0] * len(topics)
     signal_count = 0
     for token in tokens:  
         if token in feature_names:
             word_index = feature_names.index(token)
-            print(token)
             signal_count += 1
             for topic_index, topic in enumerate(topics):
                 output_vector[topic_index] += topic[word_index]
-    print("We hit " + str(signal_count) + " words")
     return output_vector
             
 # returns a list of all words in the text
