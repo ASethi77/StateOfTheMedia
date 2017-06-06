@@ -8,11 +8,15 @@ var FacialExpression = (function () {
     return FacialExpression;
 }());
 var Article = (function () {
-    function Article(text, date) {
+    function Article(text, date, headline) {
+        if (headline === void 0) { headline = ""; }
         this.text = text;
         this.date = date;
+        this.headline = headline;
         this.articleText = text;
         this.articleDate = date;
+        this.articleHeadline = headline;
+        this.selectedForAnalysis = false;
     }
     return Article;
 }());
@@ -26,7 +30,10 @@ var StateOfTheMediaController = (function () {
         this.$http = null;
         this.SESSION_KEY_NAME = "StateOfTheMediaSession";
         this.API_HOST_URL = "http://localhost";
-        this.API_PORT = 8891;
+        this.API_PORT = 5000;
+        this.currentDelta = -1;
+        this.articlesSelectedForAnalysisIndices = {};
+        this.articlesSelectedForAnalysis = {};
         this.articlesPerDay = {};
         this.sentimentPerDay = {};
         this.possibleExpressions = {
@@ -36,16 +43,52 @@ var StateOfTheMediaController = (function () {
             "Really Sad": new FacialExpression("Really Sad", "./img/ReallySad.jpg"),
             "Neutral": new FacialExpression("Neutral", "./img/Neutral.jpg")
         };
-        this.currentExpression = this.possibleExpressions["Neutral"];
+        this.currentExpression = {};
         this.showExpression = true;
-        this.topicLabels = [];
-        this.topicStrengths = [];
-        this.approvalRatingData = [];
+        this.topicLabels = {};
+        this.topicStrengths = {};
+        this.approvalRatingPredicted = {};
         this.lineChartLabels = [];
         this.totalArticles = 0;
         this.dateFormattingOptions = {
             year: "numeric", month: "short",
             day: "numeric"
+        };
+        this.getArticlesForDate = function (date) {
+            var dateStr = date.toDateString();
+            var articlesForDate = this.articlesPerDay[dateStr];
+            if (articlesForDate !== undefined) {
+                return;
+            }
+            var controller = this;
+            console.log(date.getDate());
+            var articleUrl = this.API_HOST_URL + ':' + this.API_PORT + '/news/' +
+                date.getFullYear() + '/' +
+                (date.getMonth() + 1) + '/' +
+                date.getDate();
+            this.$http({
+                'method': 'GET',
+                url: articleUrl
+            }).then(function success(response) {
+                var articlesRaw = angular.fromJson(response.data);
+                var articleList = [];
+                articlesRaw.forEach(function (article) {
+                    articleList.push(new Article(article.content, date, article.headline));
+                });
+                controller.articlesPerDay[dateStr] = articleList;
+                controller.currentDelta = Math.ceil(articleList.length / 3);
+            }, function error(response) {
+                console.error("unable to get articles for selected date");
+                console.log(response);
+            });
+        };
+        this.getArticleColumn = function (index, date) {
+            var articleList = this.articlesPerDay[date.toDateString()];
+            if (articleList === undefined) {
+                return [];
+            }
+            var articleSubset = articleList.slice(index * this.currentDelta, (index + 1) * this.currentDelta);
+            return articleSubset;
         };
         this.getApprovalRatings = function (date) {
             var controller = this;
@@ -60,38 +103,79 @@ var StateOfTheMediaController = (function () {
                 console.log(response);
             });
         };
-        this.addArticle = function (content) {
-            if ("undefined" === typeof content) {
+        this.addArticleIndex = function (index, date) {
+            var dateStr = date.toDateString();
+            var articleIndicesForDay = this.articlesSelectedForAnalysisIndices[dateStr];
+            if (articleIndicesForDay === undefined) {
+                articleIndicesForDay = [index];
+                this.articlesSelectedForAnalysisIndices[dateStr] = articleIndicesForDay;
+                this.updateAnalysis(date);
+                this.articlesPerDay[dateStr][index].selectedForAnalysis = true;
+            }
+            else if (articleIndicesForDay.indexOf(index) === -1) {
+                articleIndicesForDay.push(index);
+                this.updateAnalysis(date);
+                this.articlesPerDay[dateStr][index].selectedForAnalysis = true;
+            }
+        };
+        this.removeArticleIndex = function (index, date) {
+            var dateStr = date.toDateString();
+            var articleIndicesForDay = this.articlesSelectedForAnalysisIndices[dateStr];
+            if (articleIndicesForDay !== undefined) {
+                var indexToRemove = articleIndicesForDay.indexOf(index);
+                if (indexToRemove > -1) {
+                    articleIndicesForDay.splice(indexToRemove, 1);
+                    this.updateAnalysis(date);
+                    this.articlesPerDay[dateStr][index].selectedForAnalysis = false;
+                }
+            }
+        };
+        this.updateAnalysis = function (date) {
+            var dateStr = date.toDateString();
+            console.log("updating analysis for day's news");
+            var articlesToAnalyze = [];
+            var articleIndices = this.articlesSelectedForAnalysisIndices[dateStr];
+            if (articleIndices.length === 0) {
+                this.approvalRatingPredicted[dateStr] = undefined;
                 return;
             }
-            var args = { 'id': this.sessionState, 'text': content };
-            console.log(args);
-            var controller = this;
-            var addArticleUrl = this.API_HOST_URL + ':' + this.API_PORT + '/article/add';
-            this.$http({
-                method: "POST",
-                data: angular.toJson(args),
-                url: addArticleUrl
-            }).then(function success(response) {
-                console.log("succesfully added article");
-                controller.totalArticles++;
-                controller.fetchSentimentMeasurement();
-                controller.fetchTopicMeasurement();
-                controller.fetchApprovalRatingPredictions();
-            }, function error(response) {
-                console.error("failed to add article");
-                console.error(response);
-            });
-        };
-        this.fetchSentimentMeasurement = function () {
-            var getSentimentUrl = this.API_HOST_URL + ':' + this.API_PORT + '/model/sentimentList';
-            var indicesToAnalyze = [];
-            for (var i = 0; i < this.totalArticles; i++) {
-                indicesToAnalyze.push(i);
+            for (var i = 0; i < articleIndices.length; i++) {
+                articlesToAnalyze.push(this.articlesPerDay[dateStr][articleIndices[i]]);
             }
+            ;
+            this.articlesSelectedForAnalysis[dateStr] = articlesToAnalyze;
+            this.fetchSentimentMeasurement(date);
+            this.fetchTopicMeasurement(date);
+            this.fetchApprovalRatingPredictions(date);
+        };
+        // public addArticle = function (content: string, date: Date)
+        // {
+        //     if ("undefined" === typeof content) {
+        //         return;
+        //     }
+        //     var newArticle = new Article(content, date);
+        //     var dateStr = date.toDateString();
+        //     var articleSetForDate = this.articlesSelectedForAnalysis[dateStr];
+        //     if (articleSetForDate === undefined)
+        //     {
+        //         articleSetForDate = [ newArticle ];
+        //         this.articlesSelectedForAnalysis[dateStr] = articleSetForDate;
+        //     } else {
+        //         articleSetForDate.push(newArticle);
+        //     }
+        //     this.totalArticles++;
+        // };
+        this.fetchSentimentMeasurement = function (date) {
+            var dateStr = date.toDateString();
+            var articlesToAnalyze = this.articlesSelectedForAnalysis[dateStr];
+            if (articlesToAnalyze === undefined) {
+                return;
+            }
+            var getSentimentUrl = this.API_HOST_URL + ':' + this.API_PORT + '/model/sentimentForDay';
             var sentimentReqData = {
                 'id': this.sessionState,
-                'indices': indicesToAnalyze
+                'articles': articlesToAnalyze,
+                'day': dateStr
             };
             var controller = this;
             this.$http({
@@ -101,20 +185,24 @@ var StateOfTheMediaController = (function () {
             }).then(function success(response) {
                 console.log("done computing sentiment for articles");
                 console.log(response);
-                controller.currentExpression = controller.sentimentToFacialExpression(response.data.sentiment);
+                controller.currentExpression[dateStr] =
+                    controller.sentimentToFacialExpression(response.data.sentiment);
             }, function error(response) {
                 console.log("error computing sentiment for articles");
             });
         };
-        this.fetchTopicMeasurement = function () {
-            var getTopicUrl = this.API_HOST_URL + ':' + this.API_PORT + '/model/topicList';
-            var indicesToAnalyze = [];
-            for (var i = 0; i < this.totalArticles; i++) {
-                indicesToAnalyze.push(i);
+        this.fetchTopicMeasurement = function (date) {
+            var dateStr = date.toDateString();
+            var articlesToAnalyze = this.articlesSelectedForAnalysis[dateStr];
+            if (articlesToAnalyze === undefined) {
+                return;
             }
+            var getTopicUrl = this.API_HOST_URL + ':' + this.API_PORT + '/model/topicMixtureForDay';
+            var indicesToAnalyze = [];
             var topicReqData = {
                 'id': this.sessionState,
-                'indices': indicesToAnalyze
+                'articles': articlesToAnalyze,
+                'day': dateStr
             };
             var controller = this;
             this.$http({
@@ -124,22 +212,25 @@ var StateOfTheMediaController = (function () {
             }).then(function success(response) {
                 console.log("done computing topics for articles");
                 console.log(response);
-                controller.topicLabels = response.data.topicLabels;
-                controller.topicStrengths = response.data.topicStrengths;
+                controller.topicLabels[dateStr] = response.data.topicLabels;
+                controller.topicStrengths[dateStr] = response.data.topicStrengths;
             }, function error(response) {
                 console.error("error computing topics for articlces");
             });
         };
-        this.fetchApprovalRatingPredictions = function () {
-            var indicesToPredict = [];
-            for (var i = 0; i < this.totalArticles; i++) {
-                indicesToPredict.push(i);
+        this.fetchApprovalRatingPredictions = function (date) {
+            var dateStr = date.toDateString();
+            var articlesToAnalyze = this.articlesSelectedForAnalysis[dateStr];
+            if (articlesToAnalyze === undefined) {
+                return;
             }
             var apiReqData = {
                 'id': this.sessionState,
-                'articles': indicesToPredict
+                'articles': articlesToAnalyze,
+                'day': dateStr
             };
             var predictionUrl = this.API_HOST_URL + ':' + this.API_PORT + '/model/predict';
+            var controller = this;
             this.$http({
                 method: "POST",
                 data: angular.toJson(apiReqData),
@@ -147,13 +238,17 @@ var StateOfTheMediaController = (function () {
             }).then(function success(response) {
                 console.log("predicted something");
                 console.log(response);
+                controller.approvalRatingPredicted[dateStr] =
+                    Math.round(response.data.prediction * 100.0) / 100.0;
             }, function error(response) {
+                console.log("error predicting approval rating");
+                console.log(response);
             });
         };
         this.$scope = $scope;
         this.$http = $http;
         // default date for demo
-        this.$scope.articleDate = new Date(2016, 8, 21);
+        this.$scope.articleDate = new Date(1998, 09, 21);
         // check to see if our cookie exists in the browser already
         if (!$cookies.get(this.SESSION_KEY_NAME)) {
             // console.log(this.SESSION_KEY_NAME);
@@ -213,7 +308,6 @@ StateOfTheMediaController.$inject = [
 ];
 var app = angular.module('StateOfTheMediaApp', [
     'chart.js',
-    // 'ngMockE2E',
     'ngCookies'
 ]);
 app.config(function (ChartJsProvider) {
