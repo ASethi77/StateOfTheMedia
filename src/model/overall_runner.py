@@ -24,6 +24,7 @@ import matplotlib.patches as mpatches
 from model.linear_regression_model import LinearRegressionModel
 from model.regression_model import RegressionModel
 from model.MLPRegressionModel import MLPRegressionModel
+from model.keras_lstm_regression_model import LSTMRegressionModel
 from preprocess_text.load_corpora import load_corpora
 from preprocess_text.setup_corpus import setup_corpus
 from util.config import Config, Paths, RegressionModels
@@ -164,7 +165,7 @@ def init_corpora():
 
 # takes the features for individual days and does a running average for
 # a shifting range of days (specified in config)
-def combine_day_ranges(features_by_day):
+def combine_day_ranges(features_by_day, approval_ratings):
     output = {}
     for date, features in features_by_day.items():
         range_features = [0.0] * (2 * Config.NUM_TOPICS)
@@ -181,16 +182,15 @@ def combine_day_ranges(features_by_day):
         for i in range(len(range_features)):
             range_features[i] = range_features[i] / days_with_data
 
-        '''
-        prev_label = obama_approval_ratings.get(date - timedelta(days=1)) # get yesterday's labels
+        '''prev_label = approval_ratings.get(date - timedelta(days=1)) # get yesterday's labels
         if prev_label is not None:
             range_features.append(prev_label[0])
             range_features.append(prev_label[1])
         else:
             # no information so just provide a 50/50 guess...
             range_features.append(50.0)
-            range_features.append(50.0)
-        '''
+            range_features.append(50.0)'''
+
         output[date] = range_features
     return output
 
@@ -232,7 +232,7 @@ if __name__ == '__main__':
     print(len(political_article_corpora.keys())) 
     features_by_day = corpora_to_day_features(political_article_corpora)
     print("Number of days of data: " + str(len(features_by_day.items())))
-    features_by_range = combine_day_ranges(features_by_day)
+    features_by_range = combine_day_ranges(features_by_day, approval_ratings)
     X, Y = match_features_to_labels(features_by_range, approval_ratings)
 
     print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X))) 
@@ -266,8 +266,15 @@ if __name__ == '__main__':
             model = MLPRegressionModel([X, Y]) # when not evaluating, use entire data
         else:
             model = MLPRegressionModel([X_train, Y_train])
-
-
+    elif options.model_type == RegressionModels.LSTM.value:
+        # we need to re-match our data since LSTM expects sequential data per day
+        X, Y = match_features_to_labels(features_by_day, approval_ratings)
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=Config.TRAINING_PARTITION)
+        model_type = "LSTM Regression"
+        if not options.evaluate:
+            model = LSTMRegressionModel([X, Y])
+        else:
+            model = LSTMRegressionModel([X_train, Y_train])
     model_name = None
 
     if options.load_file is not None:

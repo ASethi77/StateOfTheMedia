@@ -75,7 +75,9 @@ class LSTMRegressionModel:
         if not self._trained or self._model is None:
             raise ValueError("Model not trained")
         else:
-            predictions = self._model.predict(np.array(x), batch_size=1)
+            X = np.array(x)
+            X = X.reshape((len(x), 1, self.num_features))
+            predictions = self._model.predict(X, batch_size=5)
             self._model.reset_states()
             return predictions 
     

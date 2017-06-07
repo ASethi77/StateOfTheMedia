@@ -63,8 +63,9 @@ class Config():
 
     # Feature computation configuration params
     # ----------------------------------------------
+    # BEST CONFIGURATION SO FAR: DELAY=7, RANGE=25 w/ MLP
     POLL_DELAY = 7 # how far into the future we should predict
-    DAY_RANGE = 10 # how many days of articles we should compound into one feature vector
+    DAY_RANGE = 25 # how many days of articles we should compound into one feature vector
     MAX_SENTENCES = 3 # maximum # of sentences to consider from each document
     SENTIMENT_ANALYSIS_METHOD = SentimentAnalysisMethod.MPQA
     TOPIC_EXTRACTION_METHOD = TopicExtractionMethod.NMF_TOPIC_EXTRACTION_MIXTURE
@@ -85,7 +86,7 @@ class Config():
 
     # Model evaluation configuration params
     # -----------------------------------------------
-    TRAIN_TEST_CONSECUTIVE = False # set to True if you want to use continuous training/testing day ranges
+    TRAIN_TEST_CONSECUTIVE = True # set to True if you want to use continuous training/testing day ranges
     TRAINING_PARTITION = 0.20 # fraction of data to use for testing
     OUTLIER_THRESHOLD_HARD = 10 # percentage (as a decimal) of how much above or below the actual is considered an extreme outlier
     OUTLIER_THRESHOLD_PERCENT = 0.25 # percentage (as a decimal) relative to the actual is considered an extreme outlier
