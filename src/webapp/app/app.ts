@@ -101,7 +101,9 @@ class StateOfTheMediaController {
     public topicLabels: { [day: string]: string[] } = {};
     public topicStrengths:{ [day: string]: number[] } = {};
     public approvalRatingPredicted: { [day: string]: number } = {};
+    public approvalRatingsLabels: string[] = ["approval", "disapproval", "neutral"];
     public lineChartLabels: string[] = [];
+    public lineChartSeries: string[] = ["Projection (week from today)"];
     public lineChartOptions: { legend: { display: true } };
 
     public totalArticles : number = 0;
@@ -110,6 +112,36 @@ class StateOfTheMediaController {
         year: "numeric", month: "short",
         day: "numeric"
     };
+
+    public addAllMahShit = function(date: Date) {
+        var dateStr = date.toDateString();
+        var articlesForDate = this.articlesPerDay[dateStr];
+        if (articlesForDate === undefined) {
+            return;
+        }
+
+        for (var i = 0; i < articlesForDate.length; i++) {
+            this.addArticleIndex(i, date, false);
+        }
+
+        this.updateAnalysis(date);
+        // alert("I'm adding all yo shit");
+    }
+
+    public removeAllMahShit = function(date: Date) {
+        var dateStr = date.toDateString();
+        var articlesForDate = this.articlesPerDay[dateStr];
+        if (articlesForDate === undefined) {
+            return;
+        }
+
+        for (var i = 0; i < articlesForDate.length; i++) {
+            this.removeArticleIndex(i, date, false);
+        }
+
+        this.updateAnalysis(date);
+        // alert("I'm deleting all yo shit");
+    }
 
     public getArticlesForDate = function(date: Date)
     {
@@ -166,7 +198,7 @@ class StateOfTheMediaController {
             });
     };
 
-    public addArticleIndex = function (index: number, date: Date)
+    public addArticleIndex = function (index: number, date: Date, update=true)
     {
         let dateStr = date.toDateString();
         var articleIndicesForDay = this.articlesSelectedForAnalysisIndices[dateStr];
@@ -174,17 +206,21 @@ class StateOfTheMediaController {
         {
             articleIndicesForDay = [ index ];
             this.articlesSelectedForAnalysisIndices[dateStr] = articleIndicesForDay;
-            this.updateAnalysis(date);
+            if (update === true) {
+                this.updateAnalysis(date);
+            }
             this.articlesPerDay[dateStr][index].selectedForAnalysis = true;
         } else if (articleIndicesForDay.indexOf(index) === -1)
         {
             articleIndicesForDay.push(index);
-            this.updateAnalysis(date);
+            if (update === true) {
+                this.updateAnalysis(date);
+            }
             this.articlesPerDay[dateStr][index].selectedForAnalysis = true;
         }
     }
 
-    public removeArticleIndex = function (index: number, date: Date)
+    public removeArticleIndex = function (index: number, date: Date, update=true)
     {
         let dateStr = date.toDateString();
         var articleIndicesForDay = this.articlesSelectedForAnalysisIndices[dateStr];
@@ -194,7 +230,9 @@ class StateOfTheMediaController {
             if (indexToRemove > -1)
             {
                 articleIndicesForDay.splice(indexToRemove, 1);
-                this.updateAnalysis(date);
+                if (update === true) {
+                    this.updateAnalysis(date);
+                }
                 this.articlesPerDay[dateStr][index].selectedForAnalysis = false;
             }
         }
@@ -265,7 +303,7 @@ class StateOfTheMediaController {
             controller.currentExpression[dateStr] =
                     controller.sentimentToFacialExpression(response.data.sentiment);
         }, function error (response) {
-            console.log("error computing sentiment for articles");
+            alert("error computing sentiment for articles");
         });
     };
 
@@ -295,9 +333,12 @@ class StateOfTheMediaController {
             console.log("done computing topics for articles");
             console.log(response);
             controller.topicLabels[dateStr] = response.data.topicLabels;
+            for (var i = 0; i < response.data.topicStrengths.length; i++) {
+                response.data.topicStrengths[i] = Math.round(response.data.topicStrengths[i] * 1000.0) / 1000.0;
+            }
             controller.topicStrengths[dateStr] = response.data.topicStrengths;
         }, function error(response) {
-            console.error("error computing topics for articlces");
+            alert("error computing topics for articlces");
         });
     }
 
@@ -325,10 +366,15 @@ class StateOfTheMediaController {
         }).then(function success(response) {
             console.log("predicted something");
             console.log(response);
-            controller.approvalRatingPredicted[dateStr] = 
-                    Math.round(response.data.prediction * 100.0) / 100.0;
+            var predictions = response.data.prediction;
+            for (var i = 0; i < predictions.length; i++)
+            {
+                predictions[i] = Math.round(predictions[i] * 100.0) / 100.0;
+            }
+            controller.approvalRatingPredicted[dateStr] = [predictions];
+            console.log(controller.approvalRatingPredicted[dateStr]);
         }, function error(response) {
-            console.log("error predicting approval rating");
+            alert("error predicting approval rating");
             console.log(response);
         });
     };

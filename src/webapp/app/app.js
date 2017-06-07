@@ -48,11 +48,37 @@ var StateOfTheMediaController = (function () {
         this.topicLabels = {};
         this.topicStrengths = {};
         this.approvalRatingPredicted = {};
+        this.approvalRatingsLabels = ["approval", "disapproval", "neutral"];
         this.lineChartLabels = [];
+        this.lineChartSeries = ["Projection (week from today)"];
         this.totalArticles = 0;
         this.dateFormattingOptions = {
             year: "numeric", month: "short",
             day: "numeric"
+        };
+        this.addAllMahShit = function (date) {
+            var dateStr = date.toDateString();
+            var articlesForDate = this.articlesPerDay[dateStr];
+            if (articlesForDate === undefined) {
+                return;
+            }
+            for (var i = 0; i < articlesForDate.length; i++) {
+                this.addArticleIndex(i, date, false);
+            }
+            this.updateAnalysis(date);
+            // alert("I'm adding all yo shit");
+        };
+        this.removeAllMahShit = function (date) {
+            var dateStr = date.toDateString();
+            var articlesForDate = this.articlesPerDay[dateStr];
+            if (articlesForDate === undefined) {
+                return;
+            }
+            for (var i = 0; i < articlesForDate.length; i++) {
+                this.removeArticleIndex(i, date, false);
+            }
+            this.updateAnalysis(date);
+            // alert("I'm deleting all yo shit");
         };
         this.getArticlesForDate = function (date) {
             var dateStr = date.toDateString();
@@ -103,29 +129,37 @@ var StateOfTheMediaController = (function () {
                 console.log(response);
             });
         };
-        this.addArticleIndex = function (index, date) {
+        this.addArticleIndex = function (index, date, update) {
+            if (update === void 0) { update = true; }
             var dateStr = date.toDateString();
             var articleIndicesForDay = this.articlesSelectedForAnalysisIndices[dateStr];
             if (articleIndicesForDay === undefined) {
                 articleIndicesForDay = [index];
                 this.articlesSelectedForAnalysisIndices[dateStr] = articleIndicesForDay;
-                this.updateAnalysis(date);
+                if (update === true) {
+                    this.updateAnalysis(date);
+                }
                 this.articlesPerDay[dateStr][index].selectedForAnalysis = true;
             }
             else if (articleIndicesForDay.indexOf(index) === -1) {
                 articleIndicesForDay.push(index);
-                this.updateAnalysis(date);
+                if (update === true) {
+                    this.updateAnalysis(date);
+                }
                 this.articlesPerDay[dateStr][index].selectedForAnalysis = true;
             }
         };
-        this.removeArticleIndex = function (index, date) {
+        this.removeArticleIndex = function (index, date, update) {
+            if (update === void 0) { update = true; }
             var dateStr = date.toDateString();
             var articleIndicesForDay = this.articlesSelectedForAnalysisIndices[dateStr];
             if (articleIndicesForDay !== undefined) {
                 var indexToRemove = articleIndicesForDay.indexOf(index);
                 if (indexToRemove > -1) {
                     articleIndicesForDay.splice(indexToRemove, 1);
-                    this.updateAnalysis(date);
+                    if (update === true) {
+                        this.updateAnalysis(date);
+                    }
                     this.articlesPerDay[dateStr][index].selectedForAnalysis = false;
                 }
             }
@@ -188,7 +222,7 @@ var StateOfTheMediaController = (function () {
                 controller.currentExpression[dateStr] =
                     controller.sentimentToFacialExpression(response.data.sentiment);
             }, function error(response) {
-                console.log("error computing sentiment for articles");
+                alert("error computing sentiment for articles");
             });
         };
         this.fetchTopicMeasurement = function (date) {
@@ -213,9 +247,12 @@ var StateOfTheMediaController = (function () {
                 console.log("done computing topics for articles");
                 console.log(response);
                 controller.topicLabels[dateStr] = response.data.topicLabels;
+                for (var i = 0; i < response.data.topicStrengths.length; i++) {
+                    response.data.topicStrengths[i] = Math.round(response.data.topicStrengths[i] * 1000.0) / 1000.0;
+                }
                 controller.topicStrengths[dateStr] = response.data.topicStrengths;
             }, function error(response) {
-                console.error("error computing topics for articlces");
+                alert("error computing topics for articlces");
             });
         };
         this.fetchApprovalRatingPredictions = function (date) {
@@ -238,10 +275,14 @@ var StateOfTheMediaController = (function () {
             }).then(function success(response) {
                 console.log("predicted something");
                 console.log(response);
-                controller.approvalRatingPredicted[dateStr] =
-                    Math.round(response.data.prediction * 100.0) / 100.0;
+                var predictions = response.data.prediction;
+                for (var i = 0; i < predictions.length; i++) {
+                    predictions[i] = Math.round(predictions[i] * 100.0) / 100.0;
+                }
+                controller.approvalRatingPredicted[dateStr] = [predictions];
+                console.log(controller.approvalRatingPredicted[dateStr]);
             }, function error(response) {
-                console.log("error predicting approval rating");
+                alert("error predicting approval rating");
                 console.log(response);
             });
         };

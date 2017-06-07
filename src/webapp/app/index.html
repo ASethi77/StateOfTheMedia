@@ -19,6 +19,10 @@
         <p data-ng-show="MainController.articlesPerDay[articleDate.toDateString()] === undefined">
             There are no articles available for {{ articleDate.toLocaleDateString('en-US', MainController.dateFormattingOptions) }}
         </p>
+        <button class="btn btn-primary" data-ng-click="MainController.addAllMahShit(articleDate)" type="button">Add all articles for day
+        </button>
+        <button class="btn btn-danger" data-ng-click="MainController.removeAllMahShit(articleDate)" type="button">Remove all articles for day
+        </button>
         <div style="height: 600px; overflow-y: scroll">
             <div class="col-md-4">
                 <div>
@@ -111,11 +115,16 @@
             </div>
             <div class="col-md-4">
                 <h3 class="text-center">Predictions</h3>
-                <ul>
+                <canvas id="bar" class="chart chart-bar"
+                    chart-data="MainController.approvalRatingPredicted[articleDate.toDateString()]"
+                    chart-labels="MainController.approvalRatingsLabels"
+                    chart-series="MainController.lineChartSeries">
+                </canvas>
+                <!--<ul>
                     <li>
                         Predicted approval rating: {{ MainController.approvalRatingPredicted[articleDate.toDateString()] + "%" }}
                     </li>
-                </ul>
+                </ul>-->
             </div>
         </div>
     </div>

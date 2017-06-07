@@ -10,6 +10,7 @@ import sys
 import os
 import datetime
 from dateutil.parser import parse
+import numpy as np
 from sklearn.externals import joblib
 PACKAGE_PARENT = '../..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
@@ -31,6 +32,7 @@ from model.overall_runner import corpus_to_day_features
 from preprocess_text.corpus import Corpus
 from operator import add
 from collections import defaultdict
+from cntk.ops.functions import load_model
 app = Flask(__name__, static_url_path='')
 CORS(app)
 sentiment_corpus = None
@@ -53,10 +55,10 @@ def init_server():
     print('Initializing server')
     approval_ratings, political_article_corpora = Runner.init_corpora()
     features_by_day = Runner.corpora_to_day_features(political_article_corpora)
-    features_by_range = Runner.combine_day_ranges(features_by_day)
+    features_by_range = Runner.combine_day_ranges(features_by_day, approval_ratings)
     print('Loading model from disk: ' + Config.TARGET_MODEL)
     print('Working...')
-    model = LinearRegressionModel.load(Config.MODEL_DIR + Config.TARGET_MODEL)
+    model = load_model(Config.MODEL_DIR + Config.TARGET_MODEL)
     print('Done.')
     print('Loading labels from disk: ' + Config.TARGET_LABELS)
     print('Working...')
@@ -65,7 +67,7 @@ def init_server():
     print('Done.')
 
     print('Loading historical articles...')
-    nyt_article_archive = json.load(open('../data/NYT_Articles_October_1998.json', 'rb'))
+    nyt_article_archive = json.load(open('../data/NYT_Articles_October_1998.json', 'r'))
     article_list = nyt_article_archive['response']['docs']
     for article in article_list:
         article_date = parse(article['pub_date'])
@@ -210,9 +212,9 @@ def get_topic_list():
         else:
             for topic_idx, topic_val in enumerate(topic_mixtures):
                 topic_mixtures[topic_idx] += topics[topic_idx]
-
+    sum_of_topics = sum(topic_mixtures)
     for topic_idx, topic_val in enumerate(topic_mixtures):
-        topic_mixtures[topic_idx] /= len(topic_mixtures)
+        topic_mixtures[topic_idx] /= sum_of_topics
 
     return jsonify(
         {
@@ -279,9 +281,9 @@ def get_predict():
     total_sentiment = total_sentiment / article_count
 
     features = total_topics + [total_sentiment]
-    output = model.predict(features)
+    output = model.eval({model.arguments[0]: np.array(features)})
     print(output)
-    return jsonify({'prediction': output[0].tolist()[0]})
+    return jsonify({'prediction': output[0].tolist()})
 
 
 @app.route('/register', methods=['POST'])
