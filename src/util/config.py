@@ -22,6 +22,7 @@ class Paths(Enum):
 class RegressionModels(Enum):
     LINEAR_REGRESSION = "linear"
     MLP = "mlp"
+    LSTM = "lstm"
 
 class SentimentAnalysisMethod(Enum):
     # Sentiment analysis via MPQA lexicon
@@ -78,7 +79,7 @@ class Config():
 
     # Regression model selection configuration params
     # -----------------------------------------------
-    REGRESSION_MODEL = RegressionModels.MLP
+    REGRESSION_MODEL = RegressionModels.LSTM
 
     # Neural-net-specific configuration params
     # -----------------------------------------------

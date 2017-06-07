@@ -6,7 +6,7 @@ import pickle
 
 from keras import backend as K
 from keras import optimizers
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import Dense, LSTM, Dropout, Masking
 from keras.utils import plot_model
 from sklearn.metrics import mean_squared_error
@@ -19,7 +19,7 @@ class LSTMRegressionModel:
                          #       python circular dependencies
     SEED_DEFAULT = 7 # seed value to reproduce random elements
 
-    def __init__(self, train_data, test_data, window_size = 30):
+    def __init__(self, train_data, test_data, window_size = 30, saved_model=None):
         print("Initializing data...")
         init_x, init_y = train_data
         test_x, test_y = test_data
@@ -35,7 +35,6 @@ class LSTMRegressionModel:
         self.num_features = self.train_x.shape[2]
         # re-shape the numpy arrays
         # (# batch, # samples, # features)
-        print(self.train_x.shape)
         self.train_x = self.train_x.reshape((self.train_x.shape[0], window_size, self.num_features))
         self.train_y = self.train_y.reshape((self.train_y.shape[0], 3))
         self.test_x = self.test_x.reshape((self.test_x.shape[0], window_size, self.num_features))
@@ -43,8 +42,14 @@ class LSTMRegressionModel:
        
         print("Done.") 
         self.history = window_size
-        self._model = self.create_model(len(self.train_x[0]))
-        self._trained = False 
+        if saved_model is None:
+            self.model = self.create_model(len(self.train_x[0]))
+            print("Successfully created new model.")
+            self._trained = False
+        else:
+            self.model = load_model(saved_model)
+            print("Successfully loaded model from: " + saved_model)
+            self._trained = True
 
     # set 'seeded' to true if we want consistently reproducible dropout
     # input_shape should be [samples, time steps, features]
@@ -65,8 +70,8 @@ class LSTMRegressionModel:
         return model
     
     def train(self):
-        if self._model is not None:
-            self._model.compile(loss='mean_squared_error', optimizer='adam')
+        if self.model is not None:
+            self.model.compile(loss='mean_squared_error', optimizer='adam')
             for i in range(LSTMRegressionModel.EPOCHS):
                 print("STARTING EPOCH #" + str(i))
                 batch_num = 0
@@ -83,7 +88,7 @@ class LSTMRegressionModel:
                     if remainder != 0:
                         batch_x = np.append(batch_x, self.train_x[:remainder], axis=0)
                         batch_y = np.append(batch_y, self.train_y[:remainder], axis=0)
-                    self._model.train_on_batch(batch_x, batch_y)
+                    self.model.train_on_batch(batch_x, batch_y)
                     batch_num += 1
                 print("DONE TRAINING EPOCH #" + str(i) + "...")
                 print("EVALUATING ON EPOCH #" + str(i) + "...")
@@ -102,7 +107,7 @@ class LSTMRegressionModel:
                     if remainder != 0:
                         batch_x = np.append(batch_x, self.train_x[:remainder], axis=0)
                         batch_y = np.append(batch_y, self.train_y[:remainder], axis=0)
-                    total_loss += self._model.test_on_batch(batch_x, batch_y)
+                    total_loss += self.model.test_on_batch(batch_x, batch_y)
                     batch_num += 1
                 print("TRAINING LOSS FOR EPOCH #" + str(i) + " = " + str(total_loss/batch_num))
                 print("EVALUATING ON EPOCH #" + str(i) + "...")
@@ -121,32 +126,44 @@ class LSTMRegressionModel:
                     if remainder != 0:
                         batch_x = np.append(batch_x, self.test_x[:remainder], axis=0)
                         batch_y = np.append(batch_y, self.test_y[:remainder], axis=0)
-                    total_loss += self._model.test_on_batch(batch_x, batch_y)
+                    total_loss += self.model.test_on_batch(batch_x, batch_y)
                     batch_num += 1
                 print("TEST LOSS FOR EPOCH #" + str(i) + " = " + str(total_loss/batch_num)) 
                 if i % 5 == 0:
-                    self._model.save("lstm_models/LSTM_EPOCH_" + str(i)) 
-            #self._model.fit(self.train_x, self.train_y, epochs=10, batch_size=1, verbose=2, shuffle=False)
+                    self.model.save("lstm_models/LSTM_EPOCH_" + str(i)) 
+            #self.model.fit(self.train_x, self.train_y, epochs=10, batch_size=1, verbose=2, shuffle=False)
             self._trained = True
 
     def predict(self, x):
-        if not self._trained or self._model is None:
+        if not self._trained or self.model is None:
+            raise ValueError("Model not trained")
+        else:
+            X = np.array(x)
+            X = X.reshape((X.shape[0], self.history, self.num_features))
+            num_outstanding = LSTMRegressionModel.BATCH_SIZE - (X.shape[0] % LSTMRegressionModel.BATCH_SIZE)
+            for i in range(num_outstanding):
+                X = np.append(X, [X[i % X.shape[0]]], axis=0)  
+            predictions = self.model.predict(X, batch_size=LSTMRegressionModel.BATCH_SIZE)
+            return predictions[:len(x)] * 100.0 
+   
+    def eval(self, x, y):
+        if not self._trained or self.model is None:
             raise ValueError("Model not trained")
         else:
             X = np.array(x)
             X = X.reshape((len(x), self.history, self.num_features))
-            predictions = self._model.predict(X, batch_size=1)
-            self._model.reset_states()
-            return predictions 
-    
+            Y = np.array(y)
+            Y = Y.reshape((len(y), 3))
+            self.model.evaluate(X, Y, batch_size=LSTMRegressionModel.BATCH_SIZE)
+ 
     def save(self, filename):
-        pickle.dump(self._model, open(filename, "wb"))
+        pickle.dump(self.model, open(filename, "wb"))
 
     def load(self, filename):
-        self._model = pickle.load(open(filename, "rb"))
+        self.model = pickle.load(open(filename, "rb"))
 
     # saves the graph of the model to a file
     # set dimensions to true if you want the shapes of the outputs on the graph
     def plot_model(self, filename, dimensions=True):
-        if self._model is not None:
-            plot_model(self._model, to_file=filename, show_shapes=dimensions)
+        if self.model is not None:
+            plot_model(self.model, to_file=filename, show_shapes=dimensions)

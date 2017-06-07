@@ -31,6 +31,7 @@ from util.config import Config, Paths, RegressionModels
 from preprocess_text.document import Document
 
 current_milli_time = lambda: int(round(time.time() * 1000))
+plt.style.use("ggplot")
 
 def doc_to_text(doc, max_sentences=-1):
     sentences = ""
@@ -215,7 +216,8 @@ def match_features_to_labels(features_by_range, approval_ratings):
         X = []
         Y = []
         # match up inputs (range features) w/ output label
-        for date, features in features_by_range.items():
+        for date, features in sorted(features_by_range.items(), key=lambda pair: pair[0]):
+            print(date)
             actual_date = date + timedelta(days=Config.POLL_DELAY)
             approval_label = approval_ratings.get(actual_date.date()) # approval label should be 'poll_lag' days into the future
             if approval_label is not None:
@@ -298,20 +300,25 @@ if __name__ == '__main__':
             model = MLPRegressionModel([X_train, Y_train])
     elif options.model_type == RegressionModels.LSTM.value:
         # we need to re-match our data since LSTM expects sequential data per day
-        X, Y = match_features_to_labels(features_by_day, approval_ratings)
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=Config.TRAINING_PARTITION)
+        ranged_features = multid_combine_day_ranges(features_by_day)
+        X, Y = match_features_to_labels(ranged_features, approval_ratings)
+        X_data, Y_data = split_data(X, Y)
+        X_train, X_test, X_val = X_data
+        Y_train, Y_test, Y_val = Y_data
         model_type = "LSTM Regression"
+        lstm_file = "lstm_models/LSTM_EPOCH_195"
         if not options.evaluate:
-            model = LSTMRegressionModel([X, Y])
+            model = LSTMRegressionModel([X, Y], [X, Y], saved_model=lstm_file)
         else:
-            model = LSTMRegressionModel([X_train, Y_train])
-    model_name = None
-
+            model = LSTMRegressionModel(train_data=[X_train, Y_train], test_data=[X_test, Y_test], saved_model=lstm_file)
+    model_name = "TEMP_MODEL_" + str(datetime.datetime.now()).replace(" ", "_")
     if options.load_file is not None:
         model = RegressionModel.load(options.load_file)
         model_name = options.load_file
-    else:
+    elif options.model_type != RegressionModels.LSTM.value:
+        print("Training model...")
         model.train()
+        print("Done.")
         model_name = "TEMP_MODEL_" + str(datetime.datetime.now()).replace(" ", "_")
     if options.save:
         model_name = "TEMP_MODEL_" + str(datetime.datetime.now()).replace(" ", "_")
@@ -351,7 +358,8 @@ if __name__ == '__main__':
         # keep track of outliers: tuples of the form (feature_vector, label, prediction)
         approval_outliers = []
         disapproval_outliers = []
-
+        X_test = X_val
+        Y_test = Y_val
         for i in range(len(X_train)):
             prediction = model.predict([X_train[i]])[0]
             diff_approval_signed = prediction[0] - Y_train[i][0]
@@ -604,9 +612,10 @@ if __name__ == '__main__':
         pw(eval_file, "")
         pw(eval_file, "")
         pw(eval_file, "========================================================")
-        pw(eval_file, "K-fold cross validation scores: ")
-        k_fold_scores = cross_val_score(model.model, X, Y, n_jobs=-1, cv=4, scoring="neg_mean_squared_error")
-        pw(eval_file, str(k_fold_scores))
+        if options.model_type != RegressionModels.LSTM.value:
+            pw(eval_file, "K-fold cross validation scores: ")
+            k_fold_scores = cross_val_score(model.model, X, Y, n_jobs=-1, cv=4, scoring="neg_mean_squared_error")
+            pw(eval_file, str(k_fold_scores))
         
         eval_file.close()
 
@@ -623,12 +632,12 @@ if __name__ == '__main__':
             actual_disapproval.append(label[1])
 
         for i in range(len(X_test)):
-            prediction = model.predict(X_test[i])
+            prediction = model.predict([X_test[i]])[0]
             if options.dump_predictions:
                 print("Predicting day " + str(i) + " given: " + str(X_test[i]))
                 print("Output: " + str(prediction))
-            predict_approval.append(prediction[0][0])
-            predict_disapproval.append(prediction[0][1])
+            predict_approval.append(prediction[0])
+            predict_disapproval.append(prediction[1])
             if options.plot_results:
                 axis_vals.append(i)
                 plt.figure(1)
@@ -636,17 +645,21 @@ if __name__ == '__main__':
         # red is actual, blue is predicted
         print("RED VALUES ARE ACTUAL - BLUE VALUES ARE PREDICTED") # just a nice console reminder
         plt.subplot(211)
-        approval_actual, = plt.plot(axis_vals, actual_approval, 'ro')
-        approval_predicted, = plt.plot(axis_vals, predict_approval, 'bo')
-        plt.legend([approval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
+        approval_actual, = plt.plot(axis_vals, actual_approval, 'ro', markersize=4)
+        approval_predicted, = plt.plot(axis_vals, predict_approval, 'bo', markersize=4)
+        plt.legend([approval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, borderaxespad=0.)
         plt.ylabel('Approval percentage')
+        axes = plt.gca()
+        axes.set_ylim([20, 70])
 
         
         plt.subplot(212)
-        disapproval_actual, = plt.plot(axis_vals, actual_disapproval, 'ro')
-        disapproval_predicted, = plt.plot(axis_vals, predict_disapproval, 'bo')
-        plt.legend([disapproval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, bbox_to_anchor=(1.05, 1), borderaxespad=0.)
+        disapproval_actual, = plt.plot(axis_vals, actual_disapproval, 'ro', markersize=4)
+        disapproval_predicted, = plt.plot(axis_vals, predict_disapproval, 'bo', markersize=4)
+        plt.legend([disapproval_actual, approval_predicted], ["Actual", "Predicted"], loc=2, borderaxespad=0.)
         plt.ylabel('Disapproval percentage')
+        axes = plt.gca()
+        axes.set_ylim([20, 70])
 
         plt.show()
         config_params = [
