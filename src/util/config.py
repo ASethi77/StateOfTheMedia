@@ -65,7 +65,7 @@ class Config():
     # ----------------------------------------------
     # BEST CONFIGURATION SO FAR: DELAY=7, RANGE=25 w/ MLP
     POLL_DELAY = 7 # how far into the future we should predict
-    DAY_RANGE = 25 # how many days of articles we should compound into one feature vector
+    DAY_RANGE = 30 # how many days of articles we should compound into one feature vector
     MAX_SENTENCES = 3 # maximum # of sentences to consider from each document
     SENTIMENT_ANALYSIS_METHOD = SentimentAnalysisMethod.MPQA
     TOPIC_EXTRACTION_METHOD = TopicExtractionMethod.NMF_TOPIC_EXTRACTION_MIXTURE

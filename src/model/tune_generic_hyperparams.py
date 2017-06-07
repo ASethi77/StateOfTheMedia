@@ -22,7 +22,7 @@ current_milli_time = lambda: int(round(time.time() * 1000))
 
 if __name__ == '__main__':
     PREDICT_DELAY_RANGE = range(1, 15)
-    DAY_RANGE_RANGE = range(1, 10)
+    DAY_RANGE_RANGE = range(10, 30)
 
     plot_x = []
     plot_y = []
@@ -41,7 +41,7 @@ if __name__ == '__main__':
             Config.DAY_RANGE = day_range
             
             features_by_day = corpora_to_day_features(political_article_corpora)
-            features_by_range = combine_day_ranges(features_by_day)
+            features_by_range = combine_day_ranges(features_by_day, approval_ratings)
             X, Y = match_features_to_labels(features_by_range, approval_ratings)
 
             X_train_and_val, X_test, Y_train_and_val, Y_test = \
