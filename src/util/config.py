@@ -87,7 +87,9 @@ class Config():
     # Model evaluation configuration params
     # -----------------------------------------------
     TRAIN_TEST_CONSECUTIVE = True # set to True if you want to use continuous training/testing day ranges
-    TRAINING_PARTITION = 0.20 # fraction of data to use for testing
+    TRAINING_PARTITION = 0.75 # fraction of data to use for training
+    TEST_PARTITION = 0.10
+    VALIDATION_PARTITION = 0.15
     OUTLIER_THRESHOLD_HARD = 10 # percentage (as a decimal) of how much above or below the actual is considered an extreme outlier
     OUTLIER_THRESHOLD_PERCENT = 0.25 # percentage (as a decimal) relative to the actual is considered an extreme outlier
     FIRST_CUTOFF = 0.02
