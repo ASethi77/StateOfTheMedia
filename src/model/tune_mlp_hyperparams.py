@@ -14,6 +14,7 @@ from model.MLPRegressionModel import MLPRegressionModel
 from util.config import Config
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 
 from model.overall_runner import corpora_to_day_features, \
                                  init_corpora, combine_day_ranges, match_features_to_labels
@@ -21,8 +22,8 @@ from model.overall_runner import corpora_to_day_features, \
 current_milli_time = lambda: int(round(time.time() * 1000))
 
 if __name__ == '__main__':
-    hidden_layer_sizes = range(10, 500, 10)
-    alpha_sizes = numpy.arange(0.00001, 0.001, 0.00001)
+    hidden_layer_sizes = range(50, 200, 10)
+    alpha_sizes = numpy.arange(0.00001, 0.001, 0.00010)
     plot_x = []
     plot_y = []
     plot_z = []
@@ -34,6 +35,7 @@ if __name__ == '__main__':
         plot_y.append([])
         plot_z.append([])
         for alpha in alpha_sizes:
+            print("Testing with hidden layer size {} and alpha {}".format(hidden_layer_size, alpha))
             plot_x[index].append(hidden_layer_size)
             plot_y[index].append(alpha)
             # print("Prediction delay is {}, day_range is {}".format(delay, day_range))
@@ -58,4 +60,4 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     surf = ax.plot_wireframe(plot_x, plot_y, plot_z, cmap=cm.coolwarm, antialiased=True)
-    plt.show()
+    plt.savefig('mlp_hyperparam_tuning.png')
