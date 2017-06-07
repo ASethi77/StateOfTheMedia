@@ -24,7 +24,7 @@ if __name__ == "__main__":
     print("Training set of size: " + str(len(X_train)))
     print("Test set of size: " + str(len(X_test)))
     print("Creating model...")
-    model = LSTMRegressionModel(train_data=[X_train, Y_train], val_data=[X_test, Y_test])
+    model = LSTMRegressionModel(train_data=[X_train, Y_train], test_data=[X_test, Y_test])
     print("Done.")
     print("Training model...")
     model.train()
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     print("Printing architecture...")
     model.plot_model("lstm.png")
     print("Done.")
-    print("Evaluating...")
+    """print("Evaluating...")
     predict_train = model.predict(X_train)
     print(predict_train)
     print(predict_train.shape)
@@ -53,6 +53,6 @@ if __name__ == "__main__":
         diff_approval = predict_approval - Y_test[i][0]
         total_error += math.pow(math.fabs(diff_approval), 2)
     print("MSE (test): " + str(total_error / len(Y_test)))
-    print("RMSE (test): " + str(math.sqrt(total_error / len(Y_test))))
+    print("RMSE (test): " + str(math.sqrt(total_error / len(Y_test))))"""
     #print(predict_test)
     print("Done.") 
