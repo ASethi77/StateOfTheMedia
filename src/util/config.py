@@ -102,5 +102,7 @@ class Config():
     def dump_config(items=[]):
         if len(items) == 0:
             for config_item in Config:
-                items.append(config_item.name)
-        return '_'.join("{}={}".format(config_item.name, str(config_item.value)) for config_item in Config if config_item.name in items)
+                if not config_item.startswith('__') and not callable(getattr(Config, config_item)):
+                    items.append(config_item)
+        print(items)
+        return '_'.join("{}={}".format(config_item, str(getattr(Config, config_item))) for config_item in dir(Config) if config_item in items)
