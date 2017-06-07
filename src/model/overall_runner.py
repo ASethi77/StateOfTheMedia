@@ -136,6 +136,7 @@ def corpus_to_day_features(date, corpus_for_day, output):
 
     output[date] = day_feature_vector        
     print("Finished date: " + str(date))
+
 # run topic extraction/sentiment analysis on the corpora
 # to build feature vectors per day
 # we expect corpora to be a map of {datetime: corpus}
@@ -194,6 +195,22 @@ def combine_day_ranges(features_by_day, approval_ratings):
         output[date] = range_features
     return output
 
+def multid_combine_day_ranges(features_by_day):
+    output = {}
+    for date, features in features_by_day.items():
+        ranged_features = []
+        for i in range(0, Config.DAY_RANGE):
+            days_away = timedelta(days=i)
+            target_day = date - days_away
+            curr_day_features = features_by_day.get(target_day)
+            if curr_day_features is not None:
+                ranged_features.insert(0, curr_day_features)
+            else:
+                # if we're missing a day, put in a default -1.0 value vector
+                ranged_features.insert(0, ([-1.0] * (2 * Config.NUM_TOPICS)))
+        output[date] = ranged_features
+    return output
+
 def match_features_to_labels(features_by_range, approval_ratings):
         X = []
         Y = []
@@ -207,6 +224,17 @@ def match_features_to_labels(features_by_range, approval_ratings):
             else:
                 pass #print("UNABLE TO FIND APPROVAL RATINGS FOR DAY {}".format(str(actual_date.date())))
         return (X, Y)
+
+def split_data(X, Y):
+    print("Length of data samples: " + len(X))
+    print("Length of labels: " + len(Y))
+    np_X = np.array(X)
+    np_Y = np.array(Y)
+    first_split = Config.TRAINING_PARTITION
+    second_split = train_split + Config.TEST_PARTITION
+    train_X, test_X, val_X = np.split(np_X, [first_split, second_split])
+    train_Y, test_Y, val_Y = np.split(np_Y, [first_split, second_split]) 
+    return ([train_x, test_X, val_X], [train_Y, test_Y, val_Y])   
 
 # print the given message to console
 # and write it to file
@@ -238,18 +266,18 @@ if __name__ == '__main__':
     print("Number of feature vectors (ideally this is # days - moving_range_size + 1): " + str(len(X))) 
     X_train = []
     X_test = []
+    X_val = []
     Y_train = []
     Y_test = []
+    Y_val = []
     
     if not Config.TRAIN_TEST_CONSECUTIVE:
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=Config.TRAINING_PARTITION)
     else:
-        num_training_points = int(1 - Config.TRAINING_PARTITION * len(X))
-        X_train = X[:num_training_points]
-        X_test = X[num_training_points:]
-        Y_train = Y[:num_training_points]
-        Y_test = Y[num_training_points:]
-    
+        X_data, Y_data = split_data(X, Y)
+        X_train, X_test, X_val = X_data
+        Y_train, Y_test, Y_val = Y_data
+ 
     # setup model and configurations
     model = None
     model_type = ""
