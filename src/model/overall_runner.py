@@ -226,15 +226,17 @@ def match_features_to_labels(features_by_range, approval_ratings):
         return (X, Y)
 
 def split_data(X, Y):
-    print("Length of data samples: " + len(X))
-    print("Length of labels: " + len(Y))
+    print("Length of data samples: {}".format(len(X)))
+    print("Length of labels: {}".format(len(Y)))
     np_X = np.array(X)
     np_Y = np.array(Y)
     first_split = Config.TRAINING_PARTITION
-    second_split = train_split + Config.TEST_PARTITION
+    second_split = first_split + Config.TEST_PARTITION
+    first_split = int(first_split * len(np_X))
+    second_split = int(second_split * len(np_X))
     train_X, test_X, val_X = np.split(np_X, [first_split, second_split])
     train_Y, test_Y, val_Y = np.split(np_Y, [first_split, second_split]) 
-    return ([train_x, test_X, val_X], [train_Y, test_Y, val_Y])   
+    return ([train_X, test_X, val_X], [train_Y, test_Y, val_Y])   
 
 # print the given message to console
 # and write it to file
